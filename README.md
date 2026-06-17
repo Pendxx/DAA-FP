@@ -6,47 +6,58 @@ Proyek ini dibangun untuk memenuhi kriteria Final Exam DAA: *Design It, Prove It
 
 ## Fitur Utama
 1. **Dua Algoritma dari Nol**: Menggunakan implementasi murni (tanpa library) untuk `Dijkstra` (O((V+E)log V)) dan `Floyd-Warshall` (O(V³)).
-2. **Peta Asli OSM Jawa**: Memproses file PBF Jawa menjadi graf berbobot (jarak Haversine) dengan >64.000 *nodes* jalan utama dan feri.
+2. **Peta Asli OSM Jawa (Termasuk Tol)**: Memproses data PBF Jawa menjadi graf berbobot (jarak Haversine) dengan >114.000 *nodes* persimpangan, gerbang tol, dan feri pelabuhan.
 3. **Reproducibility Benchmark**: Disediakan satu script (`benchmark.py`) untuk menghasilkan data CSV komparasi kecepatan dan membuktikan verifikasi hasil (*correctness cross-check*).
 4. **Interactive Web UI**: Antarmuka Leaflet interaktif untuk memilih titik awal dan tujuan.
 
 ## Persyaratan (Requirements)
 - Python 3.9+
-- `fastapi`, `uvicorn`, `pydantic` (hanya untuk server web)
 
-Install dependencies dengan:
-```bash
-pip install -r requirements.txt
+---
+
+## 🚀 Cara Menjalankan (Paling Cepat & Mudah)
+
+Anda **TIDAK PERLU** mendownload file peta mentah (`jawa_highway_ferry.osm` atau `.pbf`) karena graf jalan rayanya sudah kami *Pre-Build* dan simpan di dalam folder `graph_cache/jawa_offline_graph.pkl.xz`. Sistem akan langsung membaca data cache ini sehingga server menyala dalam hitungan detik.
+
+Untuk menjalankan server di komputer Anda, cukup gunakan *runner script* otomatis berikut:
+
+**Pengguna Windows:**
+Klik ganda (*Double Click*) file `run.ps1` atau jalankan via PowerShell:
+```powershell
+.\run.ps1
 ```
 
-## Cara Menjalankan (Build & Run)
-1. **(Opsional) Generate Peta Baru**: Jika Anda belum memiliki `jawa_highway_ferry.osm`, Anda bisa membuatnya dari PBF mentah menggunakan *tools* OSM bawaan (osmconvert & osmfilter):
-   ```bash
-   osmconvert.exe jawa-latest.osm.pbf -o=jawa.o5m
-   osmfilter.exe jawa.o5m --keep="highway=motorway =trunk =primary =secondary route=ferry" -o=jawa_highway_ferry.osm
-   ```
-2. **Jalankan Server Web**:
-   ```bash
-   python -m uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
-   *Catatan: Saat dijalankan pertama kali, backend akan mem-parsing file .osm yang butuh waktu sekitar 1 menit. Setelah itu graf akan di-cache ke dalam `graph_cache/` agar instan di masa mendatang.*
-3. **Buka Browser**: Akses `http://127.0.0.1:8000/` untuk menggunakan simulator.
+**Pengguna Mac/Linux:**
+```bash
+./run.sh
+```
+
+Script tersebut akan secara otomatis:
+1. Membuat virtual environment Python (`venv`).
+2. Meng-install dependencies (`fastapi`, `uvicorn`, dll) dari `requirements.txt`.
+3. Menjalankan *Web Server* di port 8000.
+
+Buka browser Anda dan kunjungi: **http://127.0.0.1:8000/**
+
+---
 
 ## Cara Menjalankan Benchmark (Reproducibility)
-Untuk menguji eksperimen kompleksitas dan verifikasi *cut property* (apakah Dijkstra = Floyd-Warshall), jalankan satu command berikut:
+Untuk menguji eksperimen kompleksitas dan verifikasi *cut property* (apakah jarak Dijkstra = Floyd-Warshall), jalankan command berikut:
 
 ```bash
 python benchmark.py
 ```
 
 Script ini akan:
-- Memotong graf ke beberapa ukuran spesifik (V = 100, 250, 500, 1000, 1500).
-- Menjalankan Floyd-Warshall secara penuh dan mencatat waktunya.
+- Memotong graf utama menjadi beberapa *subgraph* dengan ukuran spesifik (V = 100, 250, 500, 1000, 1500).
+- Menjalankan Floyd-Warshall secara penuh dan mencatat waktu O(V³) nya.
 - Menjalankan Dijkstra SSSP sebanyak 50 kali dan merata-ratakan waktunya.
 - Menulis hasilnya ke `benchmark_results.csv`.
 *(Catatan: Random seed telah di-fix ke angka 42 agar hasil konsisten di berbagai perangkat).*
 
-## Struktur File Penting
-- `main.py` - Core logic, routing algorithm, graph parser, and web server.
-- `benchmark.py` - Script untuk menguji empiris komparasi Dijkstra vs FW.
-- `static/` - Berisi file frontend (`index.html`, `app.js`, `style.css`).
+## Struktur Direktori Utama
+- `main.py` - Core logic, routing algorithm, graph parser, dan backend web server.
+- `benchmark.py` - Script untuk pengujian empiris komparasi Dijkstra vs Floyd-Warshall.
+- `graph_cache/` - Menyimpan database graf pre-built yang sudah dikompresi agar tidak perlu me-load XML lagi.
+- `static/` - Berisi file frontend UI (`index.html`, `app.js`, `style.css`).
+- `data_tools/` - *(Opsional)* Berisi alat-alat dan script pendukung yang dipakai untuk meracik/membangun ulang peta dari mentah (Overpass API, PBF, dll). Anda tidak perlu menyentuh folder ini jika hanya ingin menjalankan aplikasi.
