@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="dark" lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Logistics Dispatch Simulator — Real Road Routing</title>
+    <meta name="description" content="Interactive logistics route simulator using real OpenStreetMap road networks with custom Dijkstra and Floyd-Warshall algorithms." />
+
+    <!-- Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#201f23",
+                        "surface-container-low": "#1c1b1f",
+                        "surface-container-lowest": "#0e0e11",
+                        "surface-container-high": "#2a292d",
+                        "surface-variant": "#353438",
+                        "background": "#131316",
+                        "on-surface": "#e5e1e6",
+                        "on-surface-variant": "#c8c5d0",
+                        "outline-variant": "#47464f",
+                        "outline": "#928f9a",
+                        "primary": "#c4c1fb",
+                        "primary-container": "#1e1b4b",
+                        "on-primary-container": "#8683ba",
+                        "tertiary": "#4edea3",
+                        "tertiary-container": "#002819",
+                        "on-tertiary-container": "#009d6c",
+                        "error": "#ffb4ab",
+                        "error-container": "#93000a",
+                        "on-error-container": "#ffdad6",
+                        "amber": "#fbbf24",
+                        "amber-container": "#3d2800",
+                    },
+                    fontFamily: {
+                        "headline-md": ["Inter"], "body-md": ["Inter"], "headline-sm": ["Inter"],
+                        "mono-data": ["Geist"], "label-md": ["Geist"], "label-sm": ["Geist"],
+                        "headline-lg": ["Inter"], "body-lg": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #353438; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #47464f; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loader {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
+            border-top-color: white; animation: spin 1s ease-in-out infinite;
+            margin-right: 8px; vertical-align: middle;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Leaflet dark theme overrides */
+        .leaflet-container { background: #131316; font-family: 'Inter', sans-serif; }
+        .leaflet-bar a { background-color: #201f23; color: #e5e1e6; border-color: #47464f; }
+        .leaflet-bar a:hover { background-color: #353438; }
+
+        /* Route glow effect */
+        .glow-path {
+            filter: drop-shadow(0 0 8px #4edea3);
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%   { filter: drop-shadow(0 0 6px #4edea3); }
+            50%  { filter: drop-shadow(0 0 14px #4edea3); }
+            100% { filter: drop-shadow(0 0 6px #4edea3); }
+        }
+
+        /* FW progress bar */
+        @keyframes progress-shimmer {
+            0%   { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .progress-shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            background-size: 200% 100%;
+            animation: progress-shimmer 1.5s infinite;
+        }
+
+        /* Chip pulse animation */
+        @keyframes chip-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.4); }
+            50%      { box-shadow: 0 0 0 6px rgba(78, 222, 163, 0); }
+        }
+
+        .chip-active { animation: chip-pulse 2s infinite; }
+
+        /* Smooth transitions for result panels */
+        .result-panel {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0; transform: translateY(8px);
+        }
+
+        .result-panel.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* Node marker hover effect via CSS class */
+        .leaflet-interactive:hover { cursor: crosshair; }
+    </style>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+
+<body class="bg-background text-on-surface h-screen w-full flex overflow-hidden">
+
+    <!-- Left Panel: Map -->
+    <div class="flex-1 relative bg-background border-r border-outline-variant z-10 flex flex-col">
+        <div id="map" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></div>
+
+        <!-- Overlay Panel Top Left — App Title -->
+        <div class="absolute top-4 left-4 z-[400] bg-surface-container/90 backdrop-blur-md border border-outline-variant rounded-lg p-4 shadow-xl pointer-events-none">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-primary icon-fill">public</span>
+                <h1 class="font-headline-sm font-bold text-on-surface">LogiTech Routing Engine</h1>
+            </div>
+            <p class="font-label-sm text-on-surface-variant uppercase tracking-wider">Real OSM Road Network • Sukolilo, Surabaya</p>
+        </div>
+
+        <!-- Overlay: Graph Stats Badge -->
+        <div id="graphStatsBadge" class="absolute bottom-4 left-4 z-[400] bg-surface-container/90 backdrop-blur-md border border-outline-variant rounded-lg px-3 py-2 shadow-lg pointer-events-none flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-primary text-[16px]">hub</span>
+                <span class="font-mono-data text-sm text-on-surface" id="badgeNodes">—</span>
+            </div>
+            <div class="w-px h-4 bg-outline-variant"></div>
+            <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-tertiary text-[16px]">timeline</span>
+                <span class="font-mono-data text-sm text-on-surface" id="badgeEdges">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Controls & Analytics -->
+    <aside class="w-[560px] bg-surface-container-lowest h-full overflow-y-auto z-20 shrink-0 flex flex-col">
+
+        <!-- Header -->
+        <header class="p-6 border-b border-outline-variant bg-surface-container">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary">route</span>
+                </div>
+                <div>
+                    <h2 class="font-headline-md font-semibold text-primary">Dispatch Simulator</h2>
+                    <p class="font-label-sm text-on-surface-variant uppercase tracking-wider">Custom APSP • Dijkstra + Floyd-Warshall</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-5 flex flex-col gap-5 flex-1">
+
+            <!-- Floyd-Warshall Status -->
+            <div id="fwStatusCard" class="bg-amber-container/30 border border-amber/30 rounded-lg p-3 flex items-center gap-3 transition-all duration-500">
+                <span class="material-symbols-outlined text-amber text-[20px] animate-spin" id="fwStatusIcon">hourglass_top</span>
+                <div class="flex-1 min-w-0">
+                    <p class="font-label-md text-amber text-xs uppercase tracking-wide" id="fwStatusLabel">Floyd-Warshall Sedang Pre-Computing...</p>
+                    <div class="w-full bg-surface-variant h-1.5 rounded-full mt-1.5 overflow-hidden">
+                        <div class="h-full bg-amber rounded-full transition-all duration-300 progress-shimmer" id="fwProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <span class="font-mono-data text-amber text-xs" id="fwProgressText">0%</span>
+            </div>
+
+            <!-- Interactive Routing Panel -->
+            <div class="bg-surface-container border border-outline-variant rounded-lg p-4 flex flex-col gap-4">
+                <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+                    <h3 class="font-headline-sm text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">touch_app</span>
+                        Interactive Routing
+                    </h3>
+                    <button id="btnClearMap"
+                        class="text-error hover:text-white font-label-md text-xs px-2.5 py-1 rounded-md transition-all border border-error/50 hover:bg-error hover:border-error">
+                        Clear
+                    </button>
+                </div>
+
+                <!-- Instruction -->
+                <div class="flex items-start gap-2 bg-primary-container/20 border border-primary-container/30 rounded-md p-3">
+                    <span class="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
+                    <p class="font-body-md text-on-surface-variant text-sm leading-relaxed" id="instructionText">
+                        Klik pada persimpangan manapun di peta untuk memilih <strong class="text-error">Titik Asal</strong>, lalu klik lagi untuk memilih <strong class="text-tertiary">Titik Tujuan</strong>.
+                    </p>
+                </div>
+
+                <!-- Source / Target Chips -->
+                <div class="flex gap-3">
+                    <div class="flex-1 bg-surface-variant/50 border border-outline-variant rounded-md p-3 text-center transition-all" id="chipSource">
+                        <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider mb-1">Source (A)</p>
+                        <p class="font-mono-data text-sm text-on-surface" id="lblSource">Belum dipilih</p>
+                    </div>
+                    <div class="flex items-center text-outline-variant">
+                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+                    </div>
+                    <div class="flex-1 bg-surface-variant/50 border border-outline-variant rounded-md p-3 text-center transition-all" id="chipTarget">
+                        <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider mb-1">Target (B)</p>
+                        <p class="font-mono-data text-sm text-on-surface" id="lblTarget">Belum dipilih</p>
+                    </div>
+                </div>
+
+                <!-- Kalkulator Bensin & Kendaraan -->
+                <div class="bg-surface-variant/30 border border-outline-variant rounded-lg p-3 flex flex-col gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[18px]">local_gas_station</span>
+                        <p class="font-label-md text-on-surface text-xs uppercase tracking-wider">Kalkulasi Bahan Bakar</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-label-sm text-on-surface-variant text-[10px] uppercase">Kendaraan</label>
+                            <select id="selVehicle" class="bg-surface-container border border-outline-variant rounded text-sm text-on-surface px-2 py-1.5 focus:outline-none focus:border-primary">
+                                <option value="45" data-fuel="gasoline" data-ferry="30000">Motor (Bensin ≈45 Km/L)</option>
+                                <option value="12" data-fuel="both" data-ferry="200000" selected>Mobil (Bensin/Solar ≈12 Km/L)</option>
+                                <option value="8" data-fuel="diesel" data-ferry="400000">Truk Mini (Solar ≈8 Km/L)</option>
+                                <option value="6" data-fuel="diesel" data-ferry="800000">Truk Besar (Solar ≈6 Km/L)</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-label-sm text-on-surface-variant text-[10px] uppercase">Jenis Bensin</label>
+                            <select id="selFuel" class="bg-surface-container border border-outline-variant rounded text-sm text-on-surface px-2 py-1.5 focus:outline-none focus:border-primary">
+                                <option value="0">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solve Button -->
+                <button id="btnSolve" disabled
+                    class="w-full bg-tertiary-container text-tertiary hover:bg-tertiary hover:text-black font-label-md py-2.5 rounded-lg transition-all flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-tertiary-container disabled:hover:text-tertiary">
+                    <span class="loader hidden" id="spinnerSolve"></span>
+                    <span class="material-symbols-outlined text-[18px]" id="iconSolve">calculate</span>
+                    <span id="btnSolveText">Cari Rute Terpendek</span>
+                </button>
+            </div>
+
+            <!-- Results Panel (hidden until solved) -->
+            <div id="resultsPanel" class="result-panel flex flex-col gap-4">
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Dijkstra Cost -->
+                    <div class="bg-surface-container border border-outline-variant rounded-lg p-3 group hover:border-[#0ea5e9]/50 transition-colors">
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <span class="w-4 h-1.5 rounded-full bg-[#0ea5e9]"></span>
+                            <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider">Dijkstra</p>
+                        </div>
+                        <p class="font-mono-data text-xl text-tertiary" id="statDijCost">—</p>
+                        <p class="font-mono-data text-xs text-on-surface-variant mt-1" id="statDijTime">—</p>
+                    </div>
+                    <!-- Floyd-Warshall Cost -->
+                    <div class="bg-surface-container border border-outline-variant rounded-lg p-3 group hover:border-[#f59e0b]/50 transition-colors">
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <span class="w-4 h-1.5 rounded-full bg-transparent border-t-2 border-dashed border-[#f59e0b]"></span>
+                            <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider">Floyd-Warshall</p>
+                        </div>
+                        <p class="font-mono-data text-xl text-[#f59e0b]" id="statFWCost">—</p>
+                        <p class="font-mono-data text-xs text-on-surface-variant mt-1" id="statFWTime">—</p>
+                    </div>
+                </div>
+
+                <!-- Consistency Check -->
+                <div class="bg-surface-variant/50 border border-outline-variant rounded-lg p-3 flex items-center justify-between" id="consistencyCard">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]" id="consistencyIcon">pending</span>
+                        <div>
+                            <p class="font-label-md text-sm" id="consistencyLabel">Menunggu hasil...</p>
+                            <p class="font-label-sm text-on-surface-variant text-xs" id="consistencyDetail">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Travel & Path Details -->
+                <div class="bg-surface-container border border-outline-variant rounded-lg p-3 flex flex-col gap-3">
+                    <div class="flex items-center gap-2 border-b border-outline-variant pb-2">
+                        <span class="material-symbols-outlined text-primary text-[18px]">explore</span>
+                        <p class="font-label-md text-on-surface text-xs uppercase tracking-wider">Estimasi Perjalanan</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-1">
+                        <div class="bg-surface-variant/30 rounded p-2 text-center border border-outline-variant/50">
+                            <p class="font-label-sm text-on-surface-variant text-[10px] uppercase mb-1">Waktu Tempuh</p>
+                            <p class="font-mono-data text-sm text-on-surface"><span id="statTimeMinutes" class="text-tertiary font-bold text-lg">—</span></p>
+                        </div>
+                        <div class="bg-surface-variant/30 rounded p-2 text-center border border-outline-variant/50">
+                            <p class="font-label-sm text-on-surface-variant text-[10px] uppercase mb-1">Biaya Bensin (Rp)</p>
+                            <p class="font-mono-data text-lg font-bold text-on-surface" id="statTotalCost">—</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-3 px-2 border-t border-outline-variant/30 pt-3">
+                        <div class="flex justify-between items-center text-xs font-mono-data">
+                            <span class="text-on-surface-variant">Simpangan:</span>
+                            <span class="text-on-surface" id="statNodeCount">—</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs font-mono-data pl-2 border-l border-outline-variant/30">
+                            <span class="text-on-surface-variant">Koordinat:</span>
+                            <span class="text-on-surface" id="statCoordCount">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spacer -->
+            <div class="flex-1"></div>
+
+            <!-- Card: Dijkstra -->
+            <div class="bg-surface border border-outline-variant rounded-xl p-4">
+                <div class="flex items-center gap-2 mb-3 pb-2 border-b border-outline-variant">
+                    <span class="w-4 h-1.5 rounded-full bg-[#0ea5e9]"></span>
+                    <h3 class="font-label-lg text-primary uppercase tracking-wider text-xs">DIJKSTRA (O(E log V))</h3>
+                </div>
+            </div>
+
+            <!-- Footer Credit -->
+            <div class="border-t border-outline-variant pt-4 pb-2">
+                <p class="font-label-sm text-on-surface-variant text-center text-[10px] uppercase tracking-widest opacity-50">
+                    Final Project DAA • Custom APSP on Real OSM Graph
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <script src="/static/app.js?v=2"></script>
+</body>
+
+</html>
