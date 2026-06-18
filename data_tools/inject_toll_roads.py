@@ -4,6 +4,8 @@ import lzma
 import pickle
 import math
 import urllib.request
+import urllib.parse
+import time
 
 def fetch_toll_links():
     """Mengambil data gerbang tol dan ramp dari Overpass API"""
@@ -18,10 +20,41 @@ def fetch_toll_links():
     >;
     out skel qt;
     """
-    req = urllib.request.Request(overpass_url, data=overpass_query.encode('utf-8'))
-    with urllib.request.urlopen(req) as response:
-        data = json.loads(response.read().decode('utf-8'))
-        return data
+    
+    # Encode sebagai form data (Content-Type: application/x-www-form-urlencoded)
+    post_data = urllib.parse.urlencode({"data": overpass_query}).encode("utf-8")
+    
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            req = urllib.request.Request(
+                overpass_url,
+                data=post_data,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json",
+                    "User-Agent": "LogisticsSimulator/1.0",
+                }
+            )
+            with urllib.request.urlopen(req, timeout=300) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                return data
+        except urllib.error.HTTPError as e:
+            print(f"  ⚠️ Percobaan {attempt}/{max_retries} gagal: HTTP {e.code} {e.reason}")
+            if attempt < max_retries:
+                wait = 10 * attempt
+                print(f"  Menunggu {wait} detik sebelum mencoba lagi...")
+                time.sleep(wait)
+            else:
+                raise
+        except urllib.error.URLError as e:
+            print(f"  ⚠️ Percobaan {attempt}/{max_retries} gagal: {e.reason}")
+            if attempt < max_retries:
+                wait = 10 * attempt
+                print(f"  Menunggu {wait} detik sebelum mencoba lagi...")
+                time.sleep(wait)
+            else:
+                raise
 
 def haversine(lat1, lon1, lat2, lon2):
     """Menghitung jarak Haversine dalam meter"""

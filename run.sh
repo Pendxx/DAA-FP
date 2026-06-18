@@ -1,8 +1,6 @@
 #!/bin/bash
 
-echo "========================================================="
 echo "  LOGISTICS DISPATCH SIMULATOR - AUTOMATED LAUNCHER"
-echo "========================================================="
 
 # Detect OS
 OS_TYPE="unknown"
@@ -41,9 +39,7 @@ fi
 echo "[INFO] Verifying dependencies..."
 pip install -r requirements.txt -q
 
-# =========================================================================
 # AUTO-BUILD MAP LOGIC (Only runs if cache is missing)
-# =========================================================================
 CACHE_FILE="graph_cache/jawa_optimized_graph.pkl.xz"
 
 if [ ! -f "$CACHE_FILE" ]; then
@@ -52,6 +48,44 @@ if [ ! -f "$CACHE_FILE" ]; then
     echo "Sistem akan otomatis mengunduh dan membangun cache peta untuk Anda."
     echo "Proses ini membutuhkan waktu 10-15 menit (Hanya dilakukan satu kali)."
     echo ""
+    
+    # Install osmctools (osmconvert & osmfilter) jika belum ada
+    if ! command -v osmconvert &>/dev/null || ! command -v osmfilter &>/dev/null; then
+        echo "[INFO] osmctools (osmconvert/osmfilter) belum terinstall. Menginstall..."
+        if [ "$OS_TYPE" == "linux" ]; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq osmctools
+        elif [ "$OS_TYPE" == "mac" ]; then
+            if command -v brew &>/dev/null; then
+                brew install osmctools
+            else
+                echo "[❌] Homebrew tidak ditemukan. Install dulu: https://brew.sh"
+                exit 1
+            fi
+        elif [ "$OS_TYPE" == "windows" ]; then
+            if command -v choco &>/dev/null; then
+                choco install osmctools -y
+            else
+                echo "[❌] osmconvert.exe / osmfilter.exe tidak ditemukan di PATH."
+                echo "     Download manual dari: https://wiki.openstreetmap.org/wiki/Osmconvert"
+                echo "     Letakkan di folder proyek atau tambahkan ke PATH."
+                exit 1
+            fi
+        else
+            echo "[❌] OS tidak dikenali. Install osmctools secara manual."
+            exit 1
+        fi
+
+        # Verifikasi instalasi berhasil
+        if ! command -v osmconvert &>/dev/null; then
+            echo "[❌] GAGAL: osmconvert tidak berhasil diinstall."
+            exit 1
+        fi
+        echo "[✅] osmctools berhasil diinstall."
+    else
+        echo "[INFO] osmctools sudah terinstall."
+    fi
+    echo ""
+
     
     function show_progress() {
         local task_name=$1
@@ -97,16 +131,12 @@ if [ ! -f "$CACHE_FILE" ]; then
     fi
 
     echo ""
-    echo "========================================================="
     echo " 🎉 PROSES BUILD PETA & CACHE TELAH SELESAI SEMPURNA! 🎉"
-    echo "========================================================="
     echo ""
 else
     echo "[INFO] Cache peta siap digunakan: $CACHE_FILE"
 fi
 
 # Run the application
-echo "========================================================="
 echo "🚀 STARTING LOGISTICS ROUTING SIMULATOR SERVER..."
-echo "========================================================="
 python -m uvicorn main:app --reload

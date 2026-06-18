@@ -1,6 +1,11 @@
 import os
+import sys
 import urllib.request
 import subprocess
+
+# Cross-platform tool names
+OSMCONVERT = "osmconvert.exe" if sys.platform == "win32" else "osmconvert"
+OSMFILTER = "osmfilter.exe" if sys.platform == "win32" else "osmfilter"
 
 def download_with_progress(url, dest_path):
     print(f"Mendownload {url}...")
@@ -35,7 +40,7 @@ if __name__ == "__main__":
     # 2. Convert to o5m
     if not os.path.exists(o5m_file):
         print("Konversi PBF ke o5m...")
-        subprocess.run(["osmconvert.exe", pbf_file, f"-o={o5m_file}"], check=True)
+        subprocess.run([OSMCONVERT, pbf_file, f"-o={o5m_file}"], check=True)
         
     # Delete PBF to save space
     if os.path.exists(pbf_file):
@@ -45,7 +50,7 @@ if __name__ == "__main__":
     # 3. Filter
     print("Filtering jalan utama, provinsi, kabupaten & desa di Jawa & Madura...")
     subprocess.run([
-        "osmfilter.exe", o5m_file,
+        OSMFILTER, o5m_file,
         "--keep=highway=motorway =trunk =primary =secondary =tertiary =unclassified route=ferry",
         f"-o={osm_filtered}"
     ], check=True)

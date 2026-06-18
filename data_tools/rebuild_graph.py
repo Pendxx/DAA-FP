@@ -1,7 +1,12 @@
 import os
+import sys
 import urllib.request
 import subprocess
 import time
+
+# Cross-platform tool names
+OSMCONVERT = "osmconvert.exe" if sys.platform == "win32" else "osmconvert"
+OSMFILTER = "osmfilter.exe" if sys.platform == "win32" else "osmfilter"
 from main import download_and_process_graph, CACHE_FILE
 import lzma
 import pickle
@@ -37,12 +42,12 @@ if __name__ == "__main__":
     # 2. Convert to o5m + crop to Java!
     if not os.path.exists(o5m_file):
         print("Konversi PBF ke o5m dan memotong ke koordinat Pulau Jawa...")
-        subprocess.run(["osmconvert.exe", pbf_file, "-b=105.0,-8.9,114.6,-5.8", f"-o={o5m_file}"], check=True)
+        subprocess.run([OSMCONVERT, pbf_file, "-b=105.0,-8.9,114.6,-5.8", f"-o={o5m_file}"], check=True)
 
     # 3. Filter with ALL links!
     print("Filtering jalan utama + ramp tol + feri...")
     subprocess.run([
-        "osmfilter.exe", o5m_file,
+        OSMFILTER, o5m_file,
         "--keep=highway=motorway =motorway_link =trunk =trunk_link =primary =primary_link =secondary =secondary_link route=ferry",
         f"-o={osm_filtered}"
     ], check=True)
