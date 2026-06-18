@@ -7,14 +7,24 @@ import urllib.request
 import urllib.parse
 import time
 
-def fetch_toll_links():
-    """Mengambil data gerbang tol dan ramp dari Overpass API"""
-    print("[1/4] Mengambil data jalan tol dari Overpass API...")
+# Bounding box per region Indonesia untuk menghindari timeout Overpass API
+INDONESIA_REGIONS = [
+    {"name": "Sumatera", "bbox": "(-6.0,95.0,6.0,106.5)"},
+    {"name": "Jawa & Bali", "bbox": "(-8.8,105.0,-5.8,116.0)"},
+    {"name": "Kalimantan", "bbox": "(-4.5,108.5,4.5,117.5)"},
+    {"name": "Sulawesi", "bbox": "(-6.5,119.0,2.0,126.0)"},
+    {"name": "Nusa Tenggara", "bbox": "(-11.0,115.5,-8.0,127.5)"},
+    {"name": "Maluku", "bbox": "(-8.5,124.0,2.5,135.0)"},
+    {"name": "Papua", "bbox": "(-9.5,130.0,0.5,141.5)"},
+]
+
+def fetch_toll_links_region(region_name, bbox):
+    """Mengambil data gerbang tol dan ramp dari Overpass API untuk satu region"""
     overpass_url = "http://overpass-api.de/api/interpreter"
-    overpass_query = """
+    overpass_query = f"""
     [out:json][timeout:250];
     (
-      way["highway"~"motorway_link|trunk_link|primary_link|secondary_link"](-8.8,105.0,-5.8,114.6);
+      way["highway"~"motorway_link|trunk_link|primary_link|secondary_link"]{bbox};
     );
     out body;
     >;
@@ -40,21 +50,45 @@ def fetch_toll_links():
                 data = json.loads(response.read().decode("utf-8"))
                 return data
         except urllib.error.HTTPError as e:
-            print(f"  ⚠️ Percobaan {attempt}/{max_retries} gagal: HTTP {e.code} {e.reason}")
+            print(f"  ⚠️ [{region_name}] Percobaan {attempt}/{max_retries} gagal: HTTP {e.code} {e.reason}")
             if attempt < max_retries:
                 wait = 10 * attempt
                 print(f"  Menunggu {wait} detik sebelum mencoba lagi...")
                 time.sleep(wait)
             else:
-                raise
+                print(f"  ❌ [{region_name}] Gagal setelah {max_retries} percobaan. Melewati region ini.")
+                return None
         except urllib.error.URLError as e:
-            print(f"  ⚠️ Percobaan {attempt}/{max_retries} gagal: {e.reason}")
+            print(f"  ⚠️ [{region_name}] Percobaan {attempt}/{max_retries} gagal: {e.reason}")
             if attempt < max_retries:
                 wait = 10 * attempt
                 print(f"  Menunggu {wait} detik sebelum mencoba lagi...")
                 time.sleep(wait)
             else:
-                raise
+                print(f"  ❌ [{region_name}] Gagal setelah {max_retries} percobaan. Melewati region ini.")
+                return None
+
+def fetch_all_toll_links():
+    """Mengambil data jalan tol dari seluruh Indonesia, query per-region"""
+    print("[1/4] Mengambil data jalan tol dari Overpass API (seluruh Indonesia)...")
+    all_elements = []
+    
+    for i, region in enumerate(INDONESIA_REGIONS, 1):
+        print(f"  [{i}/{len(INDONESIA_REGIONS)}] Query region: {region['name']}...")
+        data = fetch_toll_links_region(region["name"], region["bbox"])
+        if data and "elements" in data:
+            count = len(data["elements"])
+            all_elements.extend(data["elements"])
+            print(f"  ✅ {region['name']}: {count} elemen ditemukan")
+        else:
+            print(f"  ⚠️ {region['name']}: tidak ada data atau gagal")
+        
+        # Delay antar query agar tidak di-rate-limit
+        if i < len(INDONESIA_REGIONS):
+            time.sleep(5)
+    
+    print(f"  Total elemen dari seluruh Indonesia: {len(all_elements)}")
+    return {"elements": all_elements}
 
 def haversine(lat1, lon1, lat2, lon2):
     """Menghitung jarak Haversine dalam meter"""
@@ -67,7 +101,7 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def inject_to_graph(links_data):
     """Menyuntikkan data jalan tol ke dalam graf cache lzma"""
-    cache_file = "graph_cache/jawa_offline_graph.pkl.xz"
+    cache_file = "graph_cache/indonesia_optimized_graph.pkl.xz"
     if not os.path.exists(cache_file):
         print("Cache graf tidak ditemukan.")
         return
@@ -130,5 +164,5 @@ def inject_to_graph(links_data):
     print("Injeksi jalan tol Selesai! Silakan restart server.")
 
 if __name__ == "__main__":
-    links = fetch_toll_links()
+    links = fetch_all_toll_links()
     inject_to_graph(links)

@@ -26,10 +26,10 @@ if %errorlevel% neq 0 (
 )
 
 echo [4/4] Memeriksa Peta Offline...
-if not exist "data_tools\jawa_optimized.osm" (
-    if not exist "graph_cache\jawa_optimized_graph.pkl.xz" (
-        if not exist "graph_cache\jawa_optimized_graph.pkl" (
-            echo   [INFO] Peta offline belum ditemukan. Memulai proses download dan build peta.
+if not exist "data_tools\indonesia_optimized.osm" (
+    if not exist "graph_cache\indonesia_optimized_graph.pkl.xz" (
+        if not exist "graph_cache\indonesia_optimized_graph.pkl" (
+            echo   [INFO] Peta offline belum ditemukan. Memulai proses download dan build peta Indonesia.
             python data_tools\build_offline_map.py
         )
     )

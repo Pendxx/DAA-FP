@@ -7,7 +7,7 @@
 const map = L.map('map', {
     zoomControl: true,
     preferCanvas: true  // Canvas renderer untuk performa lebih baik (banyak marker)
-}).setView([-7.2504, 109.5240], 6);
+}).setView([-2.5, 118.0], 5);
 
 // Dark mode tile layer
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {

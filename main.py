@@ -22,13 +22,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-# Titik pusat: Tengah Jawa
-CENTER_LAT = -7.2504
-CENTER_LNG = 109.5240
+# Titik pusat: Tengah Indonesia
+CENTER_LAT = -2.5
+CENTER_LNG = 118.0
 
 # Cache directory
 CACHE_DIR = Path("graph_cache")
-CACHE_FILE = CACHE_DIR / "jawa_optimized_graph.pkl"
+CACHE_FILE = CACHE_DIR / "indonesia_optimized_graph.pkl"
 
 def is_in_its_campus(lat, lng):
     """
@@ -272,7 +272,7 @@ def download_and_process_graph():
     print("[OSM] Memuat jaringan jalan Seluruh Indonesia dari PETA OFFLINE...")
     print("[OSM] Peringatan: Proses parsing XML ini butuh waktu sekitar 5-10 menit!")
 
-    osm_file = "data_tools/jawa_optimized.osm"
+    osm_file = "data_tools/indonesia_optimized.osm"
     if not os.path.exists(osm_file):
         raise RuntimeError(f"File offline {osm_file} tidak ditemukan! Harap jalankan build_offline_map.py terlebih dahulu.")
 

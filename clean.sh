@@ -49,8 +49,10 @@ remove_item "venv" "Virtual Environment"
 # 2. Hapus Graph Cache
 echo ""
 echo "[2/5] Menghapus Graph Cache..."
-remove_item "graph_cache/jawa_optimized_graph.pkl.xz" "Cache graf (compressed)"
-remove_item "graph_cache/jawa_optimized_graph.pkl" "Cache graf (uncompressed)"
+remove_item "graph_cache/indonesia_optimized_graph.pkl.xz" "Cache graf Indonesia (compressed)"
+remove_item "graph_cache/indonesia_optimized_graph.pkl" "Cache graf Indonesia (uncompressed)"
+remove_item "graph_cache/jawa_optimized_graph.pkl.xz" "Cache graf Jawa lama (compressed)"
+remove_item "graph_cache/jawa_optimized_graph.pkl" "Cache graf Jawa lama (uncompressed)"
 # Hapus folder graph_cache jika kosong
 if [ -d "graph_cache" ]; then
     if [ -z "$(ls -A graph_cache 2>/dev/null)" ]; then
@@ -65,12 +67,17 @@ fi
 echo ""
 echo "[3/5] Menghapus Data Peta (OSM, PBF, O5M)..."
 # File hasil download & filter di data_tools/
-remove_item "data_tools/jawa_optimized.osm" "Peta OSM terfilter"
-remove_item "data_tools/jawa_optimized.o5m" "File O5M sementara"
-remove_item "data_tools/java-latest.osm.pbf" "PBF di data_tools"
+remove_item "data_tools/indonesia_optimized.osm" "Peta OSM Indonesia terfilter"
+remove_item "data_tools/indonesia.o5m" "File O5M Indonesia sementara"
+remove_item "data_tools/indonesia-latest.osm.pbf" "PBF Indonesia di data_tools"
+# File lama (Jawa)
+remove_item "data_tools/jawa_optimized.osm" "Peta OSM Jawa lama"
+remove_item "data_tools/jawa_optimized.o5m" "File O5M Jawa lama"
+remove_item "data_tools/java-latest.osm.pbf" "PBF Jawa di data_tools"
 # File PBF di root project
-remove_item "jawa-latest.osm.pbf" "PBF di root project"
-remove_item "java-latest.osm.pbf" "PBF di root project (alt)"
+remove_item "indonesia-latest.osm.pbf" "PBF Indonesia di root"
+remove_item "jawa-latest.osm.pbf" "PBF Jawa lama di root"
+remove_item "java-latest.osm.pbf" "PBF Jawa lama di root (alt)"
 
 # 4. Hapus Python Cache
 echo ""

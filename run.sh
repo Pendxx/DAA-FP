@@ -40,7 +40,7 @@ echo "[INFO] Verifying dependencies..."
 pip install -r requirements.txt -q
 
 # AUTO-BUILD MAP LOGIC (Only runs if cache is missing)
-CACHE_FILE="graph_cache/jawa_optimized_graph.pkl.xz"
+CACHE_FILE="graph_cache/indonesia_optimized_graph.pkl.xz"
 
 if [ ! -f "$CACHE_FILE" ]; then
     echo ""
@@ -120,9 +120,9 @@ if [ ! -f "$CACHE_FILE" ]; then
     $PYTHON_CMD -c "from main import download_and_process_graph; download_and_process_graph()"
     
     # Compress manual jika main.py belum mengompres
-    if [ -f "graph_cache/jawa_optimized_graph.pkl" ] && [ ! -f "$CACHE_FILE" ]; then
+    if [ -f "graph_cache/indonesia_optimized_graph.pkl" ] && [ ! -f "$CACHE_FILE" ]; then
         echo "     Mengecilkan ukuran file cache (LZMA Compression)..."
-        $PYTHON_CMD -c "import pickle, lzma, os; lzma.open('$CACHE_FILE', 'wb').write(pickle.dumps(pickle.load(open('graph_cache/jawa_optimized_graph.pkl', 'rb')))); os.remove('graph_cache/jawa_optimized_graph.pkl')"
+        $PYTHON_CMD -c "import pickle, lzma, os; lzma.open('$CACHE_FILE', 'wb').write(pickle.dumps(pickle.load(open('graph_cache/indonesia_optimized_graph.pkl', 'rb')))); os.remove('graph_cache/indonesia_optimized_graph.pkl')"
     fi
     echo "[✅] SELESAI: Cache Graf berhasil dibuat!"
 

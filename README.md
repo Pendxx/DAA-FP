@@ -1,12 +1,12 @@
-# Logistics Dispatch Simulator (Java Edition)
+# Logistics Dispatch Simulator (Indonesia Edition)
 
-Simulator rute logistik untuk Pulau Jawa yang mencari rute tercepat dan termurah (Dijkstra vs Floyd-Warshall) pada jaringan jalan asli dari OpenStreetMap (OSM).
+Simulator rute logistik untuk **Seluruh Indonesia** yang mencari rute tercepat dan termurah (Dijkstra vs Floyd-Warshall) pada jaringan jalan asli dari OpenStreetMap (OSM).
 
 Proyek ini dibangun untuk memenuhi kriteria Final Exam DAA: *Design It, Prove It, Build It, Measure It*.
 
 ## Fitur Utama
 1. **Dua Algoritma dari Nol**: Menggunakan implementasi murni (tanpa library) untuk `Dijkstra` (O((V+E)log V)) dan `Floyd-Warshall` (O(V³)).
-2. **Peta Asli OSM Jawa (Termasuk Tol)**: Memproses data PBF Jawa menjadi graf berbobot (jarak Haversine) dengan >114.000 *nodes* persimpangan, gerbang tol, dan feri pelabuhan.
+2. **Peta Asli OSM Seluruh Indonesia (Termasuk Tol)**: Memproses data PBF Indonesia menjadi graf berbobot (jarak Haversine) dengan ratusan ribu *nodes* persimpangan, gerbang tol, dan feri pelabuhan.
 3. **Kendaraan & Larangan Tol Dinamis**: Memiliki logika restriksi kendaraan spesifik (cth: Motor dilarang melewati rute dengan properti *Motorway/Toll*), yang dieksekusi secara efisien (O(1) checks) langsung di dalam fase relaksasi Dijkstra dan graf pembangun Floyd-Warshall. Jika pengguna berpindah opsi ke Mobil, otomatis rute akan mengalkulasi ulang jalur terefisien tanpa batasan.
 4. **Multi-Stop TSP**: Pengguna dapat menambahkan lebih dari 2 (dua) titik destinasi sekaligus. Algoritma akan mencari rute optimal/permutasi terpendek untuk mengunjungi semua titik tersebut seperti permasalahan *Traveling Salesperson Problem (TSP)*.
 5. **Reproducibility Benchmark**: Disediakan satu script (`benchmark.py`) untuk menghasilkan data CSV komparasi kecepatan dan membuktikan verifikasi hasil (*correctness cross-check*).
@@ -36,8 +36,8 @@ Cara paling mudah untuk pengguna Windows:
 3. Script akan berjalan secara otomatis:
    - Mencari versi Python yang sesuai dan membuat *virtual environment*.
    - Meng-install seluruh library yang diperlukan (FastAPI, uvicorn, dll).
-   - Mengunduh dan memproses peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 10-15 menit).
-   - Menyalakan server lokal dan langsung membuka browser Anda ke **http://127.0.0.1:8000/**.
+   - Mengunduh dan memproses peta offline Seluruh Indonesia dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 30-45 menit).
+   - Menyalakan server lokal dan langsung membuka browser Anda ke **http://127.0.0.1:8001/**.
 
 *(Catatan: Jangan tutup jendela terminal/cmd warna hitam selama Anda masih ingin memakai aplikasinya).*
 
@@ -50,7 +50,7 @@ Anda dapat menggunakan script Bash universal yang telah disediakan:
    ```
 3. Script akan berjalan secara otomatis:
    - Membuat *virtual environment* dan meng-install semua library.
-   - Mengunduh, memfilter, dan membangun cache peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 10-15 menit).
+   - Mengunduh, memfilter, dan membangun cache peta offline Seluruh Indonesia dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 30-45 menit).
    - Menyalakan server lokal.
 4. Buka browser dan kunjungi: **http://127.0.0.1:8001/**
 
@@ -71,7 +71,7 @@ Script ini kompatibel dengan **Linux**, **macOS**, dan **Windows** (via Git Bash
 File yang akan dihapus:
 - `venv/` — virtual environment beserta semua pip packages
 - `graph_cache/` — cache graf `.pkl` / `.pkl.xz`
-- `data_tools/jawa_optimized.osm` — peta terfilter (~800MB)
+- `data_tools/indonesia_optimized.osm` — peta terfilter (~1.5 GB)
 - `*.pbf` — file PBF hasil download
 - `__pycache__/` — Python bytecode cache
 

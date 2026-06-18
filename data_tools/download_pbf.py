@@ -2,10 +2,10 @@ import urllib.request
 import sys
 import time
 
-url = "https://download.geofabrik.de/asia/indonesia/jawa-latest.osm.pbf"
-dest = "jawa-latest.osm.pbf"
+url = "https://download.geofabrik.de/asia/indonesia-latest.osm.pbf"
+dest = "indonesia-latest.osm.pbf"
 
-print("Downloading PBF...")
+print("Downloading PBF Indonesia...")
 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
 try:
     with urllib.request.urlopen(req) as response:
@@ -18,7 +18,11 @@ try:
                     break
                 f.write(chunk)
                 downloaded += len(chunk)
-                sys.stdout.write(f"\rProgress: {downloaded/(1024*1024):.1f} MB")
+                if length > 0:
+                    pct = int((downloaded / length) * 100)
+                    sys.stdout.write(f"\rProgress: {pct}% ({downloaded/(1024*1024):.1f} MB / {length/(1024*1024):.1f} MB)")
+                else:
+                    sys.stdout.write(f"\rProgress: {downloaded/(1024*1024):.1f} MB")
                 sys.stdout.flush()
         print("\nDone")
 except Exception as e:

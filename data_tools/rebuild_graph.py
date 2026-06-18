@@ -30,22 +30,22 @@ def download_with_progress(url, dest_path):
     print("\nDownload selesai.")
 
 if __name__ == "__main__":
-    url = "http://download.openstreetmap.fr/extracts/asia/indonesia-latest.osm.pbf"
+    url = "https://download.geofabrik.de/asia/indonesia-latest.osm.pbf"
     pbf_file = "indonesia-latest.osm.pbf"
-    o5m_file = "jawa.o5m"
-    osm_filtered = "jawa_highway_ferry.osm"
+    o5m_file = "indonesia.o5m"
+    osm_filtered = "indonesia_optimized.osm"
 
     # 1. Download
     if not os.path.exists(pbf_file) or os.path.getsize(pbf_file) < 1000000:
         download_with_progress(url, pbf_file)
     
-    # 2. Convert to o5m + crop to Java!
+    # 2. Convert to o5m (seluruh Indonesia, tanpa crop)
     if not os.path.exists(o5m_file):
-        print("Konversi PBF ke o5m dan memotong ke koordinat Pulau Jawa...")
-        subprocess.run([OSMCONVERT, pbf_file, "-b=105.0,-8.9,114.6,-5.8", f"-o={o5m_file}"], check=True)
+        print("Konversi PBF ke o5m...")
+        subprocess.run([OSMCONVERT, pbf_file, f"-o={o5m_file}"], check=True)
 
     # 3. Filter with ALL links!
-    print("Filtering jalan utama + ramp tol + feri...")
+    print("Filtering jalan utama + ramp tol + feri seluruh Indonesia...")
     subprocess.run([
         OSMFILTER, o5m_file,
         "--keep=highway=motorway =motorway_link =trunk =trunk_link =primary =primary_link =secondary =secondary_link route=ferry",

@@ -28,12 +28,12 @@ def download_with_progress(url, dest_path):
     print("\nDownload selesai.")
 
 if __name__ == "__main__":
-    url = "https://download.geofabrik.de/asia/indonesia/java-latest.osm.pbf"
+    url = "https://download.geofabrik.de/asia/indonesia-latest.osm.pbf"
     # Simpan semua file di data_tools/ agar sesuai dengan path yang diharapkan main.py
     os.makedirs("data_tools", exist_ok=True)
-    pbf_file = "data_tools/java-latest.osm.pbf"
-    o5m_file = "data_tools/jawa.o5m"
-    osm_filtered = "data_tools/jawa_optimized.osm"
+    pbf_file = "data_tools/indonesia-latest.osm.pbf"
+    o5m_file = "data_tools/indonesia.o5m"
+    osm_filtered = "data_tools/indonesia_optimized.osm"
 
     # 1. Download
     if not os.path.exists(pbf_file) or os.path.getsize(pbf_file) < 1000000:
@@ -49,8 +49,8 @@ if __name__ == "__main__":
         os.remove(pbf_file)
         print("PBF dihapus untuk menghemat ruang.")
 
-    # 3. Filter
-    print("Filtering jalan utama, provinsi, kabupaten & desa di Jawa & Madura...")
+    # 3. Filter — seluruh Indonesia (tanpa crop bounding box)
+    print("Filtering jalan utama, provinsi, kabupaten & desa di Seluruh Indonesia...")
     subprocess.run([
         OSMFILTER, o5m_file,
         "--keep=highway=motorway =trunk =primary =secondary =tertiary =unclassified route=ferry",
