@@ -18,11 +18,7 @@ def fetch_toll_links():
     >;
     out skel qt;
     """
-    req = urllib.request.Request(
-        overpass_url, 
-        data=overpass_query.encode('utf-8'),
-        headers={'User-Agent': 'LogisticsApp/1.0', 'Accept': '*/*'}
-    )
+    req = urllib.request.Request(overpass_url, data=overpass_query.encode('utf-8'))
     with urllib.request.urlopen(req) as response:
         data = json.loads(response.read().decode('utf-8'))
         return data
@@ -53,7 +49,6 @@ def inject_to_graph(links_data):
     print("[3/4] Memproses dan menginjeksi node & edge jalan tol...")
     added_nodes = 0
     added_edges = 0
-    toll_edges = set()
     
     # Tambah node
     for el in links_data["elements"]:
@@ -86,11 +81,9 @@ def inject_to_graph(links_data):
                     if v not in custom_graph: custom_graph[v] = {}
                     
                     custom_graph[u][v] = weight
-                    toll_edges.add((u, v))
                     added_edges += 1
                     if not oneway:
                         custom_graph[v][u] = weight
-                        toll_edges.add((v, u))
                         added_edges += 1
                         
     print(f"Berhasil menginjeksi {added_nodes} titik gerbang tol dan {added_edges} ruas jalan.")
@@ -98,12 +91,6 @@ def inject_to_graph(links_data):
     print("[4/4] Menyimpan ulang graf ke cache terkompresi...")
     data["custom_graph"] = custom_graph
     data["node_coords"] = node_coords
-    
-    # Simpan toll_edges (jika sudah ada sebelumnya, digabungkan)
-    existing_toll_edges = data.get("toll_edges", set())
-    existing_toll_edges.update(toll_edges)
-    data["toll_edges"] = existing_toll_edges
-
     with lzma.open(cache_file, "wb") as f:
         pickle.dump(data, f)
         

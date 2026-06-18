@@ -14,13 +14,20 @@ Proyek ini dibangun untuk memenuhi kriteria Final Exam DAA: *Design It, Prove It
 
 ## Persyaratan (Requirements)
 - Python 3.9+
+- Library pendukung (tertera di `requirements.txt`):
+  - `fastapi`
+  - `uvicorn`
+  - `pydantic`
+  - `osmnx`
+  - `networkx`
+  - `shapely`
+  - `beautifulsoup4`
 
 ---
 
 ## 🚀 Cara Menjalankan (Paling Cepat & Mudah)
 
-**Langkah 1: Persiapan Environment**
-Duplikat (*copy-paste*) file `.env.example` yang ada di dalam folder proyek ini, lalu ubah namanya (*rename*) menjadi `.env`. File ini menyimpan konfigurasi port dan lingkungan server.
+
 
 **Langkah 2: Instalasi Library**
 Pastikan Anda sudah meng-install semua library Python yang dibutuhkan. Buka terminal di folder ini dan jalankan:
@@ -29,17 +36,12 @@ pip install -r requirements.txt
 ```
 
 **Langkah 3: Menjalankan Server**
-Anda **TIDAK PERLU** mendownload file peta mentah (`jawa_highway_ferry.osm` atau `.pbf`) karena graf jalan rayanya sudah kami *Pre-Build* dan simpan di dalam folder `graph_cache/jawa_offline_graph.pkl.xz`. Sistem akan langsung membaca data cache ini sehingga server menyala dalam hitungan detik.
+Anda **TIDAK PERLU** mendownload file peta mentah (`jawa_optimized.osm` atau `.pbf`) dari awal setiap saat, karena graf jalan raya utamanya (beserta rute desa/gang untuk coverage Pulau Madura) sudah kami *Pre-Build* dan simpan di dalam folder `graph_cache/jawa_optimized_graph.pkl.xz`. Sistem akan langsung membaca data cache (hanya berukuran sekitar 20-30 MB) ini sehingga server menyala sangat cepat tanpa menghabiskan RAM laptop Anda.
 
-Untuk menjalankan server di komputer Anda, Anda bisa menggunakan perintah manual `python -m uvicorn main:app --reload` atau cukup gunakan *runner script* otomatis berikut:
+Untuk menjalankan server di komputer Anda, Anda bisa menggunakan perintah manual `python -m uvicorn main:app --reload` atau cukup gunakan *runner script* universal otomatis berikut:
 
-**Pengguna Windows:**
-Klik ganda (*Double Click*) file `run.ps1` atau jalankan via PowerShell:
-```powershell
-.\run.ps1
-```
-
-**Pengguna Mac/Linux:**
+**Seluruh Pengguna (Windows / Mac / Linux):**
+Buka terminal Anda (Untuk Windows, wajib menggunakan **Git Bash**) dan jalankan perintah:
 ```bash
 ./run.sh
 ```

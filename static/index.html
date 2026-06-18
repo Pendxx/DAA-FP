@@ -214,22 +214,15 @@
                 <div class="flex items-start gap-2 bg-primary-container/20 border border-primary-container/30 rounded-md p-3">
                     <span class="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
                     <p class="font-body-md text-on-surface-variant text-sm leading-relaxed" id="instructionText">
-                        Klik pada persimpangan manapun di peta untuk memilih <strong class="text-error">Titik Asal</strong>, lalu klik lagi untuk memilih <strong class="text-tertiary">Titik Tujuan</strong>.
+                        Klik pada peta untuk memilih titik <strong>Keberangkatan & Tujuan Pengantaran</strong>. TSP akan otomatis menyusun urutannya.
                     </p>
                 </div>
 
-                <!-- Source / Target Chips -->
-                <div class="flex gap-3">
-                    <div class="flex-1 bg-surface-variant/50 border border-outline-variant rounded-md p-3 text-center transition-all" id="chipSource">
-                        <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider mb-1">Source (A)</p>
-                        <p class="font-mono-data text-sm text-on-surface" id="lblSource">Belum dipilih</p>
-                    </div>
-                    <div class="flex items-center text-outline-variant">
-                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
-                    </div>
-                    <div class="flex-1 bg-surface-variant/50 border border-outline-variant rounded-md p-3 text-center transition-all" id="chipTarget">
-                        <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider mb-1">Target (B)</p>
-                        <p class="font-mono-data text-sm text-on-surface" id="lblTarget">Belum dipilih</p>
+                <!-- Waypoints List -->
+                <div class="flex flex-col gap-2" id="waypointsContainer">
+                    <p class="font-label-sm text-on-surface-variant uppercase text-[10px] tracking-wider">Daftar Titik (Maks 8)</p>
+                    <div id="waypointsList" class="flex flex-wrap gap-2">
+                        <p class="text-xs text-outline-variant italic w-full" id="emptyWaypointsText">Belum ada titik yang dipilih.</p>
                     </div>
                 </div>
 
@@ -243,10 +236,10 @@
                         <div class="flex flex-col gap-1.5">
                             <label class="font-label-sm text-on-surface-variant text-[10px] uppercase">Kendaraan</label>
                             <select id="selVehicle" class="bg-surface-container border border-outline-variant rounded text-sm text-on-surface px-2 py-1.5 focus:outline-none focus:border-primary">
-                                <option value="45" data-type="motor" data-fuel="gasoline" data-ferry="30000">Motor (Bensin ≈45 Km/L)</option>
-                                <option value="12" data-type="mobil" data-fuel="both" data-ferry="200000" selected>Mobil (Bensin/Solar ≈12 Km/L)</option>
-                                <option value="8" data-type="mobil" data-fuel="diesel" data-ferry="400000">Truk Mini (Solar ≈8 Km/L)</option>
-                                <option value="6" data-type="mobil" data-fuel="diesel" data-ferry="800000">Truk Besar (Solar ≈6 Km/L)</option>
+                                <option value="45" data-fuel="gasoline" data-ferry="30000">Motor (Bensin ≈45 Km/L)</option>
+                                <option value="12" data-fuel="both" data-ferry="200000" selected>Mobil (Bensin/Solar ≈12 Km/L)</option>
+                                <option value="8" data-fuel="diesel" data-ferry="400000">Truk Mini (Solar ≈8 Km/L)</option>
+                                <option value="6" data-fuel="diesel" data-ferry="800000">Truk Besar (Solar ≈6 Km/L)</option>
                             </select>
                         </div>
                         <div class="flex flex-col gap-1.5">
@@ -263,7 +256,7 @@
                     class="w-full bg-tertiary-container text-tertiary hover:bg-tertiary hover:text-black font-label-md py-2.5 rounded-lg transition-all flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-tertiary-container disabled:hover:text-tertiary">
                     <span class="loader hidden" id="spinnerSolve"></span>
                     <span class="material-symbols-outlined text-[18px]" id="iconSolve">calculate</span>
-                    <span id="btnSolveText">Cari Rute Terpendek</span>
+                    <span id="btnSolveText">Cari Rute Optimal (TSP)</span>
                 </button>
             </div>
 

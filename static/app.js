@@ -7,7 +7,7 @@
 const map = L.map('map', {
     zoomControl: true,
     preferCanvas: true  // Canvas renderer untuk performa lebih baik (banyak marker)
-}).setView([-7.5000, 110.0000], 7);
+}).setView([-7.2504, 109.5240], 6);
 
 // Dark mode tile layer
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -19,10 +19,8 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 // ============================================================
 // STATE
 // ============================================================
-let sourceNodeId = null;
-let targetNodeId = null;
-let sourceMarker = null;   // Marker besar untuk source
-let targetMarker = null;   // Marker besar untuk target
+let waypoints = []; // array of { id, lat, lng }
+let waypointMarkers = []; // array of L.circleMarker
 let dijkstraLine = null;   // Polyline rute Dijkstra
 let fwLine = null;         // Polyline rute Floyd-Warshall (overlay)
 let allNodeMarkers = {};   // { nodeId: L.circleMarker }
@@ -38,10 +36,8 @@ let lastFerryCrossings = 0;
 // ============================================================
 // DOM ELEMENTS
 // ============================================================
-const $lblSource = document.getElementById('lblSource');
-const $lblTarget = document.getElementById('lblTarget');
-const $chipSource = document.getElementById('chipSource');
-const $chipTarget = document.getElementById('chipTarget');
+const $waypointsList = document.getElementById('waypointsList');
+const $emptyWaypointsText = document.getElementById('emptyWaypointsText');
 const $btnSolve = document.getElementById('btnSolve');
 const $btnSolveText = document.getElementById('btnSolveText');
 const $iconSolve = document.getElementById('iconSolve');
@@ -100,7 +96,11 @@ async function loadGraph() {
         // Jangan lagi merender 50.000 titik biru ke peta untuk menghemat memori & mengatasi FPS drop.
         // Data nodesData tetap disimpan untuk kalkulasi pencarian node terdekat (nearest node) saat map diklik.
 
-        // Sesuaikan view dihapus agar tidak otomatis zoom out ke seluruh Indonesia
+        // Sesuaikan view agar semua node terlihat
+        const allLatLngs = Object.values(nodesData).map(c => [c.lat, c.lng]);
+        if (allLatLngs.length > 0) {
+            map.fitBounds(allLatLngs, { padding: [30, 30] });
+        }
 
     } catch (err) {
         console.error('[GRAPH] Error memuat graf:', err);
@@ -194,10 +194,6 @@ function updateEstimations() {
 $selVehicle.addEventListener('change', () => {
     renderFuelOptions();
     updateEstimations();
-    // Auto re-route if nodes are selected
-    if (sourceNodeId && targetNodeId) {
-        $btnSolve.click();
-    }
 });
 
 $selFuel.addEventListener('change', updateEstimations);
@@ -208,8 +204,11 @@ $selFuel.addEventListener('change', updateEstimations);
 // ============================================================
 // Map click handler untuk mencari node terdekat jika area kosong diklik
 map.on('click', (e) => {
-    // Jangan lakukan apa-apa jika sudah pilih Source & Target
-    if (sourceNodeId && targetNodeId) return;
+    // Batasi maksimum 8 titik (agar TSP tidak terlalu berat / O(N!))
+    if (waypoints.length >= 8) {
+        alert("Maksimal 8 titik untuk simulasi TSP ini.");
+        return;
+    }
     
     // Pastikan graf sudah diload
     if (!nodesData || Object.keys(nodesData).length === 0) return;
@@ -219,7 +218,7 @@ map.on('click', (e) => {
     let minDistance = Infinity;
 
     for (const [nodeId, coords] of Object.entries(nodesData)) {
-        // Optimasi: bounding box kasar (~2km) agar tidak perlu hitung haversine untuk 36k node
+        // Optimasi: bounding box kasar (~2km)
         const latDiff = Math.abs(coords.lat - clickedLatLng.lat);
         const lngDiff = Math.abs(coords.lng - clickedLatLng.lng);
         if (latDiff > 0.02 || lngDiff > 0.02) continue;
@@ -233,7 +232,6 @@ map.on('click', (e) => {
     }
 
     if (nearestNodeId) {
-        // Simulasikan klik pada node terdekat, TAPI render marker di posisi KLIK
         onNodeClicked(nearestNodeId, { 
             lat: clickedLatLng.lat, 
             lng: clickedLatLng.lng,
@@ -243,60 +241,68 @@ map.on('click', (e) => {
     }
 });
 
-let sourceSnapLine = null;
-let targetSnapLine = null;
-
 function onNodeClicked(nodeId, coords) {
-    if (!sourceNodeId) {
-        // Pilih Source
-        sourceNodeId = nodeId;
-        $lblSource.textContent = `Poin A (Snap: Node ${nodeId})`;
-        $chipSource.classList.add('border-error/50');
-        $chipSource.classList.remove('border-outline-variant');
-
-        // Buat marker besar merah untuk source (DI TITIK KLIK/KOORDINAT CUSTOM)
-        if (sourceMarker) map.removeLayer(sourceMarker);
-        sourceMarker = L.circleMarker([coords.lat, coords.lng], {
-            radius: 9, color: '#ef4444', fillColor: '#ef4444',
-            fillOpacity: 0.9, weight: 3, opacity: 1
-        }).addTo(map);
-        sourceMarker.bindTooltip('SOURCE (A)', { permanent: true, direction: 'top', offset: [0, -12], className: 'source-tooltip' });
-
-        updateInstruction('step2');
-        updateSolveButton();
-
-    } else if (!targetNodeId && nodeId !== sourceNodeId) {
-        // Pilih Target
-        targetNodeId = nodeId;
-        $lblTarget.textContent = `Poin B (Snap: Node ${nodeId})`;
-        $chipTarget.classList.add('border-tertiary/50');
-        $chipTarget.classList.remove('border-outline-variant');
-
-        // Buat marker besar hijau untuk target
-        if (targetMarker) map.removeLayer(targetMarker);
-        targetMarker = L.circleMarker([coords.lat, coords.lng], {
-            radius: 9, color: '#4edea3', fillColor: '#4edea3',
-            fillOpacity: 0.9, weight: 3, opacity: 1
-        }).addTo(map);
-        targetMarker.bindTooltip('TARGET (B)', { permanent: true, direction: 'top', offset: [0, -12], className: 'target-tooltip' });
-
-        updateInstruction('ready');
-        updateSolveButton();
+    // Cek apakah node sudah ada di waypoints
+    if (waypoints.find(w => w.id === nodeId)) {
+        return; // Jangan tambahkan titik yang sama dua kali
     }
+
+    const index = waypoints.length;
+    const isSource = index === 0;
+    const color = isSource ? '#ef4444' : '#4edea3'; // Merah untuk awal, Hijau untuk tujuan
+    const title = isSource ? 'KIRIM (A)' : `TUJUAN ${index}`;
+
+    waypoints.push({ id: nodeId, lat: coords.lat, lng: coords.lng });
+
+    // Buat marker
+    const marker = L.circleMarker([coords.lat, coords.lng], {
+        radius: 9, color: color, fillColor: color,
+        fillOpacity: 0.9, weight: 3, opacity: 1
+    }).addTo(map);
+    
+    marker.bindTooltip(title, { permanent: true, direction: 'top', offset: [0, -12], className: 'target-tooltip' });
+    waypointMarkers.push(marker);
+
+    renderWaypointsList();
+    updateInstruction();
+    updateSolveButton();
 }
 
-function updateInstruction(step) {
-    if (step === 'step2') {
-        $instructionText.innerHTML = `<strong class="text-error">✓ Source dipilih!</strong> Sekarang klik persimpangan lain untuk memilih <strong class="text-tertiary">Titik Tujuan</strong>.`;
-    } else if (step === 'ready') {
-        $instructionText.innerHTML = `<strong class="text-tertiary">✓ Kedua titik dipilih!</strong> Tekan tombol <strong class="text-on-surface">Cari Rute Terpendek</strong> di bawah.`;
+function renderWaypointsList() {
+    if (waypoints.length === 0) {
+        $emptyWaypointsText.classList.remove('hidden');
+        $waypointsList.innerHTML = '';
+        $waypointsList.appendChild($emptyWaypointsText);
+        return;
+    }
+    
+    $emptyWaypointsText.classList.add('hidden');
+    $waypointsList.innerHTML = '';
+    
+    waypoints.forEach((wp, idx) => {
+        const isSource = idx === 0;
+        const colorClass = isSource ? 'bg-error/20 text-error border-error/30' : 'bg-tertiary/20 text-tertiary border-tertiary/30';
+        const label = isSource ? 'Awal' : `Tujuan ${idx}`;
+        
+        const chip = document.createElement('div');
+        chip.className = `px-2 py-1 rounded text-[11px] font-mono-data border ${colorClass} flex items-center gap-1`;
+        chip.innerHTML = `<span>${label}</span> <span class="opacity-50 text-[9px]">(ID:${wp.id})</span>`;
+        $waypointsList.appendChild(chip);
+    });
+}
+
+function updateInstruction() {
+    if (waypoints.length === 0) {
+        $instructionText.innerHTML = `Klik pada peta untuk memilih titik <strong>Keberangkatan</strong>.`;
+    } else if (waypoints.length === 1) {
+        $instructionText.innerHTML = `<strong class="text-error">✓ Titik keberangkatan dipilih!</strong> Sekarang klik peta untuk memilih <strong class="text-tertiary">Titik Tujuan</strong>. Anda bisa memilih hingga 8 titik.`;
     } else {
-        $instructionText.innerHTML = `Klik pada persimpangan manapun di peta untuk memilih <strong class="text-error">Titik Asal</strong>, lalu klik lagi untuk memilih <strong class="text-tertiary">Titik Tujuan</strong>.`;
+        $instructionText.innerHTML = `<strong class="text-tertiary">✓ ${waypoints.length} titik dipilih!</strong> Tekan <strong class="text-on-surface">Cari Rute Optimal (TSP)</strong> atau tambah titik lagi.`;
     }
 }
 
 function updateSolveButton() {
-    $btnSolve.disabled = !(sourceNodeId && targetNodeId);
+    $btnSolve.disabled = waypoints.length < 2;
 }
 
 
@@ -304,7 +310,7 @@ function updateSolveButton() {
 // LANGKAH 3: SOLVE — JALANKAN KEDUA ALGORITMA
 // ============================================================
 $btnSolve.addEventListener('click', async () => {
-    if (!sourceNodeId || !targetNodeId) return;
+    if (waypoints.length < 2) return;
 
     // UI: loading state
     $spinnerSolve.classList.remove('hidden');
@@ -317,9 +323,7 @@ $btnSolve.addEventListener('click', async () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                source: parseInt(sourceNodeId),
-                target: parseInt(targetNodeId),
-                vehicle: $selVehicle.options[$selVehicle.selectedIndex].dataset.type || "mobil"
+                waypoints: waypoints.map(w => parseInt(w.id))
             })
         });
         const data = await res.json();
@@ -377,7 +381,7 @@ $btnSolve.addEventListener('click', async () => {
         // Reset button
         $spinnerSolve.classList.add('hidden');
         $iconSolve.classList.remove('hidden');
-        $btnSolveText.textContent = 'Cari Rute Terpendek';
+        $btnSolveText.textContent = 'Cari Rute Optimal (TSP)';
         $btnSolve.disabled = false;
     }
 });
@@ -485,11 +489,10 @@ function formatDistance(meters) {
 // LANGKAH 5: CLEAR MAP
 // ============================================================
 $btnClearMap.addEventListener('click', () => {
-    // Hapus marker besar
-    if (sourceMarker) map.removeLayer(sourceMarker);
-    if (targetMarker) map.removeLayer(targetMarker);
-    sourceMarker = null;
-    targetMarker = null;
+    // Hapus semua marker waypoint
+    waypointMarkers.forEach(m => map.removeLayer(m));
+    waypointMarkers = [];
+    waypoints = [];
 
     // Hapus garis rute
     if (dijkstraLine) {
@@ -497,25 +500,14 @@ $btnClearMap.addEventListener('click', () => {
         map.removeLayer(dijkstraLine);
     }
     if (fwLine) map.removeLayer(fwLine);
-    if (sourceSnapLine) map.removeLayer(sourceSnapLine);
-    if (targetSnapLine) map.removeLayer(targetSnapLine);
     dijkstraLine = null;
     fwLine = null;
 
-    // Reset state
-    sourceNodeId = null;
-    targetNodeId = null;
-
     // Reset UI
-    $lblSource.textContent = 'Belum dipilih';
-    $lblTarget.textContent = 'Belum dipilih';
-    $chipSource.classList.remove('border-error/50');
-    $chipSource.classList.add('border-outline-variant');
-    $chipTarget.classList.remove('border-tertiary/50');
-    $chipTarget.classList.add('border-outline-variant');
-    $resultsPanel.classList.remove('visible');
-    updateInstruction('default');
+    renderWaypointsList();
     updateSolveButton();
+    $resultsPanel.classList.remove('visible');
+    updateInstruction();
 
     // Reset stats
     $statDijCost.textContent = '—';
