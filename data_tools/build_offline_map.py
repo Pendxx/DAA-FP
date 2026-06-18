@@ -29,9 +29,11 @@ def download_with_progress(url, dest_path):
 
 if __name__ == "__main__":
     url = "https://download.geofabrik.de/asia/indonesia/java-latest.osm.pbf"
-    pbf_file = "java-latest.osm.pbf"
-    o5m_file = "jawa.o5m"
-    osm_filtered = "jawa_optimized.osm"
+    # Simpan semua file di data_tools/ agar sesuai dengan path yang diharapkan main.py
+    os.makedirs("data_tools", exist_ok=True)
+    pbf_file = "data_tools/java-latest.osm.pbf"
+    o5m_file = "data_tools/jawa.o5m"
+    osm_filtered = "data_tools/jawa_optimized.osm"
 
     # 1. Download
     if not os.path.exists(pbf_file) or os.path.getsize(pbf_file) < 1000000:

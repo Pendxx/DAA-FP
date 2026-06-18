@@ -4,4 +4,5 @@ __pycache__/
 *.osm
 *.o5m
 *.pbf
+*.xz
 .env
