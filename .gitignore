@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pkl
+*.osm
+*.o5m
+*.pbf
+.env
