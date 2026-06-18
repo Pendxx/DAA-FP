@@ -139,4 +139,4 @@ fi
 
 # Run the application
 echo "🚀 STARTING LOGISTICS ROUTING SIMULATOR SERVER..."
-python -m uvicorn main:app --reload
+python -m uvicorn main:app --reload --port 8001
