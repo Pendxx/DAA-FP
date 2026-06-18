@@ -100,11 +100,7 @@ async function loadGraph() {
         // Jangan lagi merender 50.000 titik biru ke peta untuk menghemat memori & mengatasi FPS drop.
         // Data nodesData tetap disimpan untuk kalkulasi pencarian node terdekat (nearest node) saat map diklik.
 
-        // Sesuaikan view agar semua node terlihat
-        const allLatLngs = Object.values(nodesData).map(c => [c.lat, c.lng]);
-        if (allLatLngs.length > 0) {
-            map.fitBounds(allLatLngs, { padding: [30, 30] });
-        }
+        // Sesuaikan view dihapus agar tidak otomatis zoom out ke seluruh Indonesia
 
     } catch (err) {
         console.error('[GRAPH] Error memuat graf:', err);
