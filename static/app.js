@@ -198,6 +198,10 @@ function updateEstimations() {
 $selVehicle.addEventListener('change', () => {
     renderFuelOptions();
     updateEstimations();
+    // Auto re-route if nodes are selected
+    if (sourceNodeId && targetNodeId) {
+        $btnSolve.click();
+    }
 });
 
 $selFuel.addEventListener('change', updateEstimations);
@@ -318,7 +322,8 @@ $btnSolve.addEventListener('click', async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 source: parseInt(sourceNodeId),
-                target: parseInt(targetNodeId)
+                target: parseInt(targetNodeId),
+                vehicle: $selVehicle.options[$selVehicle.selectedIndex].dataset.type || "mobil"
             })
         });
         const data = await res.json();

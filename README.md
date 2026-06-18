@@ -7,8 +7,10 @@ Proyek ini dibangun untuk memenuhi kriteria Final Exam DAA: *Design It, Prove It
 ## Fitur Utama
 1. **Dua Algoritma dari Nol**: Menggunakan implementasi murni (tanpa library) untuk `Dijkstra` (O((V+E)log V)) dan `Floyd-Warshall` (O(V³)).
 2. **Peta Asli OSM Jawa (Termasuk Tol)**: Memproses data PBF Jawa menjadi graf berbobot (jarak Haversine) dengan >114.000 *nodes* persimpangan, gerbang tol, dan feri pelabuhan.
-3. **Reproducibility Benchmark**: Disediakan satu script (`benchmark.py`) untuk menghasilkan data CSV komparasi kecepatan dan membuktikan verifikasi hasil (*correctness cross-check*).
-4. **Interactive Web UI**: Antarmuka Leaflet interaktif untuk memilih titik awal dan tujuan.
+3. **Kendaraan & Larangan Tol Dinamis**: Memiliki logika restriksi kendaraan spesifik (cth: Motor dilarang melewati rute dengan properti *Motorway/Toll*), yang dieksekusi secara efisien (O(1) checks) langsung di dalam fase relaksasi Dijkstra dan graf pembangun Floyd-Warshall. Jika pengguna berpindah opsi ke Mobil, otomatis rute akan mengalkulasi ulang jalur terefisien tanpa batasan.
+4. **Multi-Stop TSP**: Pengguna dapat menambahkan lebih dari 2 (dua) titik destinasi sekaligus. Algoritma akan mencari rute optimal/permutasi terpendek untuk mengunjungi semua titik tersebut seperti permasalahan *Traveling Salesperson Problem (TSP)*.
+5. **Reproducibility Benchmark**: Disediakan satu script (`benchmark.py`) untuk menghasilkan data CSV komparasi kecepatan dan membuktikan verifikasi hasil (*correctness cross-check*).
+6. **Interactive Web UI**: Antarmuka Leaflet interaktif untuk memilih titik awal, tujuan, serta penyesuaian kendaraan (*Auto Re-Route*).
 
 ## Persyaratan (Requirements)
 - Python 3.9+

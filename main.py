@@ -174,10 +174,12 @@ def parse_osm_custom(filename):
     node_coords = {}
     custom_graph = {}
     ferry_edges = set()
+    toll_edges = set()
     edge_geometries = {}
 
     for refs, tags in raw_ways:
         is_ferry = tags.get("route") == "ferry"
+        is_toll = tags.get("highway") in ("motorway", "motorway_link") or tags.get("toll") == "yes"
         is_oneway = tags.get("oneway") in ("yes", "true", "1")
 
         # Pecah way menjadi segmen antar intersection
@@ -226,6 +228,8 @@ def parse_osm_custom(filename):
                         ]
                         if is_ferry:
                             ferry_edges.add((u, v))
+                        if is_toll:
+                            toll_edges.add((u, v))
 
                     # Reverse edge (kecuali oneway)
                     if not is_oneway:
@@ -237,6 +241,8 @@ def parse_osm_custom(filename):
                             ]
                             if is_ferry:
                                 ferry_edges.add((v, u))
+                            if is_toll:
+                                toll_edges.add((v, u))
 
                     i = j
                     break
@@ -247,7 +253,7 @@ def parse_osm_custom(filename):
     total_edges = sum(len(nb) for nb in custom_graph.values())
     print(f"[PARSER] Graf selesai: {len(node_coords)} nodes, {total_edges} edges (directed)")
 
-    return node_coords, custom_graph, edge_geometries, ferry_edges
+    return node_coords, custom_graph, edge_geometries, ferry_edges, toll_edges
 
 
 import lzma
@@ -276,7 +282,7 @@ def download_and_process_graph():
     if not os.path.exists(osm_file):
         raise RuntimeError(f"File offline {osm_file} tidak ditemukan! Harap jalankan build_offline_map.py terlebih dahulu.")
 
-    node_coords, custom_graph, edge_geometries, ferry_edges = parse_osm_custom(osm_file)
+    node_coords, custom_graph, edge_geometries, ferry_edges, toll_edges = parse_osm_custom(osm_file)
 
     # === POST-PROCESSING 1: Paksa semua edge bidirectional ===
     print("[POST] Memaksa semua edge menjadi bidirectional...")
@@ -295,6 +301,8 @@ def download_and_process_graph():
             geom_fwd = edge_geometries.get(f"{u},{v}")
             if geom_fwd and f"{v},{u}" not in edge_geometries:
                 edge_geometries[f"{v},{u}"] = list(reversed(geom_fwd))
+            if (u, v) in toll_edges:
+                toll_edges.add((v, u))
     print(f"[POST] Ditambahkan {added_reverse} reverse edges.")
 
     # === POST-PROCESSING 2: Temukan komponen terhubung ===
@@ -404,6 +412,7 @@ def download_and_process_graph():
         "custom_graph": custom_graph,
         "edge_geometries": edge_geometries,
         "ferry_edges": ferry_edges,
+        "toll_edges": toll_edges,
     }
 
     # Simpan cache
@@ -425,6 +434,7 @@ node_coords = graph_data["node_coords"]
 custom_graph = graph_data["custom_graph"]
 edge_geometries = graph_data["edge_geometries"]
 ferry_edges_global = graph_data.get("ferry_edges", set())
+toll_edges_global = graph_data.get("toll_edges", set())
 
 V_COUNT = len(node_coords)
 E_COUNT = sum(len(neighbors) for neighbors in custom_graph.values()) // 2
@@ -441,11 +451,15 @@ print(f"\n[READY] Graf dimuat: {V_COUNT} persimpangan, {E_COUNT} ruas jalan")
 # Kompleksitas: O((V + E) log V) dengan binary heap
 # Referensi: Cormen et al., "Introduction to Algorithms" (CLRS)
 
-def custom_dijkstra(graph, start, end):
+def custom_dijkstra(graph, start, end, vehicle_type="mobil"):
     """
     Implementasi Dijkstra dari nol menggunakan min-heap (heapq).
     Mengembalikan: (list_of_node_ids, total_cost_meters)
+    
+    Jika vehicle_type == 'motor', akan mengabaikan ruas jalan tol.
     """
+    import heapq
+    
     if start not in graph or end not in graph:
         return [], float("inf")
 
@@ -472,6 +486,10 @@ def custom_dijkstra(graph, start, end):
 
         # Relaksasi semua tetangga
         for neighbor, weight in graph[current_node].items():
+            # Filter kendaraan: Motor tidak boleh masuk tol
+            if vehicle_type == "motor" and (current_node, neighbor) in toll_edges_global:
+                continue
+                
             new_dist = current_dist + weight
             if new_dist < distances[neighbor]:
                 distances[neighbor] = new_dist
@@ -690,6 +708,7 @@ def expand_path_to_coords(path_nodes):
 class RouteRequest(BaseModel):
     source: int
     target: int
+    vehicle: str = "mobil"
 
 
 @app.get("/")
@@ -728,7 +747,7 @@ def get_fuel_prices():
     """Mengembalikan daftar harga bensin yang telah disinkronisasi."""
     return {"prices": FUEL_PRICES}
 
-def extract_bfs_subgraph(graph, source, target, max_nodes=800):
+def extract_bfs_subgraph(graph, source, target, vehicle_type="mobil", max_nodes=800):
     """
     Ekstrak subgraph menggunakan BFS dari source, dibatasi max_nodes.
     Jika target belum termasuk, tambahkan jalur Dijkstra ke target.
@@ -742,6 +761,8 @@ def extract_bfs_subgraph(graph, source, target, max_nodes=800):
     while queue and len(visited) < max_nodes:
         node = queue.popleft()
         for neighbor in graph.get(node, {}):
+            if vehicle_type == "motor" and (node, neighbor) in toll_edges_global:
+                continue
             if neighbor not in visited:
                 visited.add(neighbor)
                 queue.append(neighbor)
@@ -751,7 +772,7 @@ def extract_bfs_subgraph(graph, source, target, max_nodes=800):
     # Pastikan target ada di subgraph
     if target not in visited:
         # Tambahkan node di jalur Dijkstra source→target
-        dij_path, _ = custom_dijkstra(graph, source, target)
+        dij_path, _ = custom_dijkstra(graph, source, target, vehicle_type)
         for n in dij_path:
             visited.add(n)
 
@@ -760,6 +781,8 @@ def extract_bfs_subgraph(graph, source, target, max_nodes=800):
     for node in visited:
         sub_graph[node] = {}
         for neighbor, weight in graph.get(node, {}).items():
+            if vehicle_type == "motor" and (node, neighbor) in toll_edges_global:
+                continue
             if neighbor in visited:
                 sub_graph[node][neighbor] = weight
 
@@ -854,7 +877,7 @@ def solve_route(req: RouteRequest):
 
     # --- Dijkstra ---
     t0 = time.perf_counter()
-    dij_path, dij_cost = custom_dijkstra(custom_graph, req.source, req.target)
+    dij_path, dij_cost = custom_dijkstra(custom_graph, req.source, req.target, req.vehicle)
     t1 = time.perf_counter()
     dij_time_ms = round((t1 - t0) * 1000, 2)
     dij_coords = expand_path_to_coords(dij_path)
@@ -916,7 +939,7 @@ def solve_route(req: RouteRequest):
     elif getattr(fw_solver, 'too_large', False):
         # Graf terlalu besar → jalankan FW on-demand pada subgraph lokal
         sub_graph, sub_nodes = extract_bfs_subgraph(
-            custom_graph, req.source, req.target, max_nodes=800
+            custom_graph, req.source, req.target, vehicle_type=req.vehicle, max_nodes=800
         )
         fw_path, fw_cost, fw_elapsed_ms, sub_size = floyd_warshall_on_subgraph(
             sub_graph, req.source, req.target
