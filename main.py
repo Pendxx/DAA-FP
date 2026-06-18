@@ -1,11 +1,4 @@
-"""
-Logistics Dispatch Simulator — Backend
-Menggunakan jaringan jalan nyata dari OpenStreetMap
-dengan algoritma Dijkstra & Floyd-Warshall buatan sendiri (from scratch).
-
-Parser XML custom digunakan untuk membaca file OSM,
-menggantikan OSMnx yang gagal pada file hasil filter.
-"""
+### Logistics Dispatch Simulator — Backend
 
 import os
 import math
@@ -72,18 +65,12 @@ def sync_fuel_prices():
 # Jalankan sinkronisasi saat server menyala
 sync_fuel_prices()
 
-# ============================================================
-# FASTAPI SETUP
-# ============================================================
+# Fastapi Setup
 app = FastAPI(title="Logistics Dispatch Simulator")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-# ============================================================
 # LANGKAH 1: EKSTRAKSI GRAF DARI OPENSTREETMAP
-# Parser XML custom — tidak menggunakan OSMnx (yang gagal pada
-# file hasil filter karena missing nodes).
-# ============================================================
 
 def haversine_meters(lat1, lon1, lat2, lon2):
     """Menghitung jarak Haversine antara dua titik koordinat dalam meter."""
@@ -442,10 +429,8 @@ E_COUNT = sum(len(neighbors) for neighbors in custom_graph.values()) // 2
 print(f"\n[READY] Graf dimuat: {V_COUNT} persimpangan, {E_COUNT} ruas jalan")
 
 
-# ============================================================
 # LANGKAH 2: IMPLEMENTASI ALGORITMA DARI NOL (FROM SCRATCH)
 # Tidak menggunakan networkx atau library apapun untuk routing!
-# ============================================================
 
 # ---- 2A. DIJKSTRA (Single-Source Shortest Path) ----
 # Kompleksitas: O((V + E) log V) dengan binary heap
@@ -666,9 +651,7 @@ fw_solver = FloydWarshallSolver()
 fw_solver.start_precompute(custom_graph)
 
 
-# ============================================================
-# LANGKAH 3: FUNGSI UTILITAS
-# ============================================================
+# Pembuatan Subgraph Lokal (BFS) & Floyd-Warshall O(V^3)
 
 def expand_path_to_coords(path_nodes):
     """
@@ -701,9 +684,7 @@ def expand_path_to_coords(path_nodes):
     return coords
 
 
-# ============================================================
-# LANGKAH 4: API ENDPOINTS
-# ============================================================
+# Integrasi API dengan FastAPI
 
 class RouteRequest(BaseModel):
     source: int
@@ -916,11 +897,14 @@ def solve_route(req: RouteRequest):
             if (fw_path[i], fw_path[i+1]) in ferry_edges_global:
                 fw_ferry_crossings += 1
 
-        costs_match = bool(
-            dij_cost != float("inf")
-            and fw_cost != float("inf")
-            and abs(float(dij_cost) - float(fw_cost)) < 0.01
-        )
+        if dij_cost == float("inf") and fw_cost == float("inf"):
+            costs_match = True
+        else:
+            costs_match = bool(
+                dij_cost != float("inf")
+                and fw_cost != float("inf")
+                and abs(float(dij_cost) - float(fw_cost)) < 0.01
+            )
 
         result["floyd_warshall"] = {
             "path_coords": fw_coords,
@@ -952,11 +936,14 @@ def solve_route(req: RouteRequest):
             if (fw_path[i], fw_path[i+1]) in ferry_edges_global:
                 fw_ferry_crossings += 1
 
-        costs_match = bool(
-            dij_cost != float("inf")
-            and fw_cost != float("inf")
-            and abs(float(dij_cost) - float(fw_cost)) < 0.01
-        )
+        if dij_cost == float("inf") and fw_cost == float("inf"):
+            costs_match = True
+        else:
+            costs_match = bool(
+                dij_cost != float("inf")
+                and fw_cost != float("inf")
+                and abs(float(dij_cost) - float(fw_cost)) < 0.01
+            )
 
         result["floyd_warshall"] = {
             "path_coords": fw_coords,
