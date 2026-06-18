@@ -1,24 +1,23 @@
-// ============================================================
 // LOGISTICS DISPATCH SIMULATOR — Frontend Controller
-// Mengelola interaksi peta Leaflet dan komunikasi dengan backend
-// ============================================================
+
 
 // --- Inisialisasi Peta Leaflet ---
+// Batas Koordinat (Bounding Box) Pulau Jawa & Madura
+const javaBounds = L.latLngBounds(
+    [-9.0, 104.5], // Sudut Barat Daya (Southwest) - Samudra Hindia / Banten
+    [-5.5, 115.0]  // Sudut Timur Laut (Northeast) - Laut Jawa / Banyuwangi
+);
+
 const map = L.map('map', {
     zoomControl: true,
-    preferCanvas: true  // Canvas renderer untuk performa lebih baik (banyak marker)
-}).setView([-7.2504, 109.5240], 6);
-
-// Dark mode tile layer
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 19
-}).addTo(map);
+    preferCanvas: true, // Canvas renderer untuk performa lebih baik (banyak marker)
+    maxBounds: javaBounds, // Kunci area panning hanya di sekitar Jawa
+    maxBoundsViscosity: 1.0 // Membuat efek pantulan keras saat menabrak batas
+}).setView([-7.2504, 110.0000], 8);
 
 
-// ============================================================
+
 // STATE
-// ============================================================
 let waypoints = []; // array of { id, lat, lng }
 let waypointMarkers = []; // array of L.circleMarker
 let dijkstraLine = null;   // Polyline rute Dijkstra
@@ -33,9 +32,7 @@ let lastTimeMinutes = null;
 let lastFerryCrossings = 0;
 
 
-// ============================================================
 // DOM ELEMENTS
-// ============================================================
 const $waypointsList = document.getElementById('waypointsList');
 const $emptyWaypointsText = document.getElementById('emptyWaypointsText');
 const $btnSolve = document.getElementById('btnSolve');
@@ -76,9 +73,7 @@ const $statNodeCount = document.getElementById('statNodeCount');
 const $statCoordCount = document.getElementById('statCoordCount');
 
 
-// ============================================================
 // LANGKAH 1: MUAT GRAF DARI BACKEND
-// ============================================================
 async function loadGraph() {
     try {
         const res = await fetch('/api/graph-info');
@@ -96,7 +91,7 @@ async function loadGraph() {
         // Jangan lagi merender 50.000 titik biru ke peta untuk menghemat memori & mengatasi FPS drop.
         // Data nodesData tetap disimpan untuk kalkulasi pencarian node terdekat (nearest node) saat map diklik.
 
-        // Sesuaikan view agar semua node terlihat
+        // Sesuaikan view awal agar semua node terlihat (membingkai persis seluruh Pulau Jawa)
         const allLatLngs = Object.values(nodesData).map(c => [c.lat, c.lng]);
         if (allLatLngs.length > 0) {
             map.fitBounds(allLatLngs, { padding: [30, 30] });
@@ -199,9 +194,7 @@ $selVehicle.addEventListener('change', () => {
 $selFuel.addEventListener('change', updateEstimations);
 
 
-// ============================================================
 // LANGKAH 2: INTERAKSI KLIK — PILIH SOURCE & TARGET
-// ============================================================
 // Map click handler untuk mencari node terdekat jika area kosong diklik
 map.on('click', (e) => {
     // Batasi maksimum 8 titik (agar TSP tidak terlalu berat / O(N!))
@@ -306,9 +299,7 @@ function updateSolveButton() {
 }
 
 
-// ============================================================
 // LANGKAH 3: SOLVE — JALANKAN KEDUA ALGORITMA
-// ============================================================
 $btnSolve.addEventListener('click', async () => {
     if (waypoints.length < 2) return;
 
@@ -355,7 +346,7 @@ $btnSolve.addEventListener('click', async () => {
             dijkstraLine._glowLine = glowLine;
 
             // Zoom ke rute
-            map.fitBounds(dijkstraLine.getBounds(), { padding: [60, 60] });
+            //map.fitBounds(dijkstraLine.getBounds(), { padding: [60, 60] });
         }
 
         // --- Gambar Rute Floyd-Warshall (garis overlay, dashed) ---
@@ -387,9 +378,7 @@ $btnSolve.addEventListener('click', async () => {
 });
 
 
-// ============================================================
 // LANGKAH 4: TAMPILKAN HASIL PERBANDINGAN
-// ============================================================
 function displayResults(data) {
     // Show results panel with animation
     $resultsPanel.classList.add('visible');
@@ -485,9 +474,7 @@ function formatDistance(meters) {
 }
 
 
-// ============================================================
 // LANGKAH 5: CLEAR MAP
-// ============================================================
 $btnClearMap.addEventListener('click', () => {
     // Hapus semua marker waypoint
     waypointMarkers.forEach(m => map.removeLayer(m));
@@ -525,9 +512,7 @@ $btnClearMap.addEventListener('click', () => {
 });
 
 
-// ============================================================
 // LANGKAH 6: POLLING STATUS FLOYD-WARSHALL
-// ============================================================
 async function pollFWStatus() {
     try {
         const res = await fetch('/api/fw-status');
@@ -579,15 +564,11 @@ pollFWStatus();
 loadFuelPrices();
 
 
-// ============================================================
 // LANGKAH 7: MUAT GRAF SAAT HALAMAN SIAP
-// ============================================================
 loadGraph();
 
 
-// ============================================================
 // TOOLTIP STYLE (injeksi CSS tambahan untuk Leaflet tooltip)
-// ============================================================
 const tooltipStyle = document.createElement('style');
 tooltipStyle.textContent = `
     .node-tooltip {
