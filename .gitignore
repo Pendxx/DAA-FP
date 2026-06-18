@@ -6,3 +6,4 @@ __pycache__/
 *.pbf
 *.xz
 .env
+benchmark_results.csv
