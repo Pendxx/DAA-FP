@@ -36,7 +36,7 @@ Cara paling mudah untuk pengguna Windows:
 3. Script akan berjalan secara otomatis:
    - Mencari versi Python yang sesuai dan membuat *virtual environment*.
    - Meng-install seluruh library yang diperlukan (FastAPI, uvicorn, dll).
-   - Mengunduh dan memproses peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 5-10 menit).
+   - Mengunduh dan memproses peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 10-15 menit).
    - Menyalakan server lokal dan langsung membuka browser Anda ke **http://127.0.0.1:8000/**.
 
 *(Catatan: Jangan tutup jendela terminal/cmd warna hitam selama Anda masih ingin memakai aplikasinya).*
@@ -44,21 +44,36 @@ Cara paling mudah untuk pengguna Windows:
 ### 🍎/🐧 Pengguna Mac / Linux
 Anda dapat menggunakan script Bash universal yang telah disediakan:
 1. Buka terminal di folder ini.
-2. Jalankan perintah instalasi dan server:
+2. Jalankan perintah:
    ```bash
    ./run.sh
    ```
-3. *(Penting)* Jika ini pertama kalinya Anda menjalankan aplikasi, buka terminal baru (di folder yang sama) dan jalankan *map builder*:
-   ```bash
-   python3 data_tools/build_offline_map.py
-   ```
-4. Buka browser dan kunjungi: **http://127.0.0.1:8000/**
+3. Script akan berjalan secara otomatis:
+   - Membuat *virtual environment* dan meng-install semua library.
+   - Mengunduh, memfilter, dan membangun cache peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 10-15 menit).
+   - Menyalakan server lokal.
+4. Buka browser dan kunjungi: **http://127.0.0.1:8001/**
 
 ### 🛠️ Cara Menjalankan Secara Manual (Semua OS)
 Jika Anda tidak ingin menggunakan script otomatis:
-1. Install library: `pip install -r requirements.txt`
-2. Download & *build* peta (jika belum ada): `python data_tools/build_offline_map.py`
-3. Jalankan server: `python -m uvicorn main:app --reload`
+1. Buat dan aktifkan virtual environment: `python3 -m venv venv && source venv/bin/activate`
+2. Install library: `pip install -r requirements.txt`
+3. Download & *build* peta (jika belum ada): `python data_tools/build_offline_map.py`
+4. Jalankan server: `python -m uvicorn main:app --reload --port 8001`
+
+### 🧹 Membersihkan / Uninstall
+Untuk menghapus semua file yang dibuat oleh `run.sh` (virtual environment, cache peta, data download, dll), jalankan:
+```bash
+./clean.sh
+```
+Script ini kompatibel dengan **Linux**, **macOS**, dan **Windows** (via Git Bash/MSYS2).
+
+File yang akan dihapus:
+- `venv/` — virtual environment beserta semua pip packages
+- `graph_cache/` — cache graf `.pkl` / `.pkl.xz`
+- `data_tools/jawa_optimized.osm` — peta terfilter (~800MB)
+- `*.pbf` — file PBF hasil download
+- `__pycache__/` — Python bytecode cache
 
 ---
 
@@ -79,6 +94,9 @@ Script ini akan:
 ## Struktur Direktori Utama
 - `main.py` - Core logic, routing algorithm, graph parser, dan backend web server.
 - `benchmark.py` - Script untuk pengujian empiris komparasi Dijkstra vs Floyd-Warshall.
+- `run.sh` - Script otomatis untuk menjalankan aplikasi di Linux dan macOS.
+- `run_windows.bat` - Script otomatis untuk menjalankan aplikasi di Windows (double-click).
+- `clean.sh` - Script untuk menghapus semua file yang di-generate (kompatibel Linux, macOS, dan Windows via Git Bash).
 - `graph_cache/` - Menyimpan database graf pre-built yang sudah dikompresi agar tidak perlu me-load XML lagi.
 - `static/` - Berisi file frontend UI (`index.html`, `app.js`, `style.css`).
 - `data_tools/` - *(Opsional)* Berisi alat-alat dan script pendukung yang dipakai untuk meracik/membangun ulang peta dari mentah (Overpass API, PBF, dll). Anda tidak perlu menyentuh folder ini jika hanya ingin menjalankan aplikasi.

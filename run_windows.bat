@@ -37,15 +37,15 @@ if not exist "data_tools\jawa_optimized.osm" (
 
 echo ============================================================
 echo   SERVER SEDANG DINYALAKAN...
-echo   Membuka browser ke http://127.0.0.1:8000
+echo   Membuka browser ke http://127.0.0.1:8001
 echo   (Mohon jangan tutup jendela hitam ini selama aplikasi dipakai)
 echo ============================================================
 
 :: Tunggu 2 detik, lalu buka browser otomatis
 timeout /t 2 /nobreak > nul
-start http://127.0.0.1:8000
+start http://127.0.0.1:8001
 
 :: Jalankan server uvicorn
-python -m uvicorn main:app --reload
+python -m uvicorn main:app --reload --port 8001
 
 pause
