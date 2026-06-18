@@ -19,9 +19,19 @@ Proyek ini dibangun untuk memenuhi kriteria Final Exam DAA: *Design It, Prove It
 
 ## 🚀 Cara Menjalankan (Paling Cepat & Mudah)
 
+**Langkah 1: Persiapan Environment**
+Duplikat (*copy-paste*) file `.env.example` yang ada di dalam folder proyek ini, lalu ubah namanya (*rename*) menjadi `.env`. File ini menyimpan konfigurasi port dan lingkungan server.
+
+**Langkah 2: Instalasi Library**
+Pastikan Anda sudah meng-install semua library Python yang dibutuhkan. Buka terminal di folder ini dan jalankan:
+```bash
+pip install -r requirements.txt
+```
+
+**Langkah 3: Menjalankan Server**
 Anda **TIDAK PERLU** mendownload file peta mentah (`jawa_highway_ferry.osm` atau `.pbf`) karena graf jalan rayanya sudah kami *Pre-Build* dan simpan di dalam folder `graph_cache/jawa_offline_graph.pkl.xz`. Sistem akan langsung membaca data cache ini sehingga server menyala dalam hitungan detik.
 
-Untuk menjalankan server di komputer Anda, cukup gunakan *runner script* otomatis berikut:
+Untuk menjalankan server di komputer Anda, Anda bisa menggunakan perintah manual `python -m uvicorn main:app --reload` atau cukup gunakan *runner script* otomatis berikut:
 
 **Pengguna Windows:**
 Klik ganda (*Double Click*) file `run.ps1` atau jalankan via PowerShell:
