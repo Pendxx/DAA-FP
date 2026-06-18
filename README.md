@@ -37,7 +37,7 @@ Cara paling mudah untuk pengguna Windows:
    - Mencari versi Python yang sesuai dan membuat *virtual environment*.
    - Meng-install seluruh library yang diperlukan (FastAPI, uvicorn, dll).
    - Mengunduh dan memproses peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 10-15 menit).
-   - Menyalakan server lokal dan langsung membuka browser Anda ke **http://127.0.0.1:8000/**.
+   - Menyalakan server lokal dan langsung membuka browser Anda ke **http://127.0.0.1:8001/**.
 
 *(Catatan: Jangan tutup jendela terminal/cmd warna hitam selama Anda masih ingin memakai aplikasinya).*
 
