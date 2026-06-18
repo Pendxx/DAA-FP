@@ -4,8 +4,8 @@ import urllib.request
 import subprocess
 
 # Cross-platform tool names
-OSMCONVERT = "osmconvert.exe" if sys.platform == "win32" else "osmconvert"
-OSMFILTER = "osmfilter.exe" if sys.platform == "win32" else "osmfilter"
+OSMCONVERT = os.path.join("data_tools", "osmconvert.exe") if sys.platform == "win32" else "osmconvert"
+OSMFILTER = os.path.join("data_tools", "osmfilter.exe") if sys.platform == "win32" else "osmfilter"
 
 def download_with_progress(url, dest_path):
     print(f"Mendownload {url}...")
