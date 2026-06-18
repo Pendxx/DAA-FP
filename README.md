@@ -27,31 +27,38 @@ Proyek ini dibangun untuk memenuhi kriteria Final Exam DAA: *Design It, Prove It
 
 ## 🚀 Cara Menjalankan (Paling Cepat & Mudah)
 
+Aplikasi ini menggunakan peta jalan asli sehingga memerlukan unduhan data OSM. Kami menyediakan *script* otomatis agar Anda tidak repot mengetik perintah manual.
 
+### 🪟 Pengguna Windows (1-Click Auto Run)
+Cara paling mudah untuk pengguna Windows:
+1. Buka folder proyek (`DAA-FP`) di File Explorer Anda.
+2. Cari dan klik dua kali (*double-click*) file **`run_windows.bat`**.
+3. Script akan berjalan secara otomatis:
+   - Mencari versi Python yang sesuai dan membuat *virtual environment*.
+   - Meng-install seluruh library yang diperlukan (FastAPI, uvicorn, dll).
+   - Mengunduh dan memproses peta offline Jawa dari OSM secara otomatis (hanya pada run pertama, membutuhkan waktu sekitar 5-10 menit).
+   - Menyalakan server lokal dan langsung membuka browser Anda ke **http://127.0.0.1:8000/**.
 
-**Langkah 2: Instalasi Library**
-Pastikan Anda sudah meng-install semua library Python yang dibutuhkan. Buka terminal di folder ini dan jalankan:
-```bash
-pip install -r requirements.txt
-```
+*(Catatan: Jangan tutup jendela terminal/cmd warna hitam selama Anda masih ingin memakai aplikasinya).*
 
-**Langkah 3: Menjalankan Server**
-Anda **TIDAK PERLU** mendownload file peta mentah (`jawa_optimized.osm` atau `.pbf`) dari awal setiap saat, karena graf jalan raya utamanya (beserta rute desa/gang untuk coverage Pulau Madura) sudah kami *Pre-Build* dan simpan di dalam folder `graph_cache/jawa_optimized_graph.pkl.xz`. Sistem akan langsung membaca data cache (hanya berukuran sekitar 20-30 MB) ini sehingga server menyala sangat cepat tanpa menghabiskan RAM laptop Anda.
+### 🍎/🐧 Pengguna Mac / Linux
+Anda dapat menggunakan script Bash universal yang telah disediakan:
+1. Buka terminal di folder ini.
+2. Jalankan perintah instalasi dan server:
+   ```bash
+   ./run.sh
+   ```
+3. *(Penting)* Jika ini pertama kalinya Anda menjalankan aplikasi, buka terminal baru (di folder yang sama) dan jalankan *map builder*:
+   ```bash
+   python3 data_tools/build_offline_map.py
+   ```
+4. Buka browser dan kunjungi: **http://127.0.0.1:8000/**
 
-Untuk menjalankan server di komputer Anda, Anda bisa menggunakan perintah manual `python -m uvicorn main:app --reload` atau cukup gunakan *runner script* universal otomatis berikut:
-
-**Seluruh Pengguna (Windows / Mac / Linux):**
-Buka terminal Anda (Untuk Windows, wajib menggunakan **Git Bash**) dan jalankan perintah:
-```bash
-./run.sh
-```
-
-Script tersebut akan secara otomatis:
-1. Membuat virtual environment Python (`venv`).
-2. Meng-install dependencies (`fastapi`, `uvicorn`, dll) dari `requirements.txt`.
-3. Menjalankan *Web Server* di port 8000.
-
-Buka browser Anda dan kunjungi: **http://127.0.0.1:8000/**
+### 🛠️ Cara Menjalankan Secara Manual (Semua OS)
+Jika Anda tidak ingin menggunakan script otomatis:
+1. Install library: `pip install -r requirements.txt`
+2. Download & *build* peta (jika belum ada): `python data_tools/build_offline_map.py`
+3. Jalankan server: `python -m uvicorn main:app --reload`
 
 ---
 
